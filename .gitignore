@@ -1,6 +1,6 @@
 bin/
 build/
-#include/
+include/
 lib/
 src/precomp.hpp.gch
 cmake_build/
