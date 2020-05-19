@@ -1,19 +1,38 @@
+# photonic dimension
 dimension: 15
+# Heisenberg chain sites
 sites: 2
+# Is the Heisenberg chain periodic for n>2?
+periodic: true
+# Number of mcwf runs
 runs: 100
+# time step of numerical integration
 dt: 0.01
+# Final time step
 time: 50.0
+# Cavity loss damping
 gamma: 0.0
+# Light matter coupling strength
 coupling: 0.3
 hubbardU: 1.0
 hopping: 1.0
+# Cavity frequency
 frequency: 2.0
+# Amplitude of the driving laser
 laser_amplitude: 1.5
+# Frequency of the driving laser
+laser_frequency: 0.0
+# Temperature of the photonic environment.
 temperature: 0.0
+# Starting basis state of the electronic system in the product basis.
+boundary_state: 1
 
-periodic: true
+# Heisenberg model parameters
 Jx: 1.0
 Jy: 1.0
 Jz: 1.0
 
 observable: photon_number
+method: mcwf
+# only relevant for mcwf
+num_threads: 1
