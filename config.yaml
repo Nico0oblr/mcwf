@@ -1,0 +1,19 @@
+dimension: 15
+sites: 2
+runs: 100
+dt: 0.01
+time: 50.0
+gamma: 0.0
+coupling: 0.3
+hubbardU: 1.0
+hopping: 1.0
+frequency: 2.0
+laser_amplitude: 1.5
+temperature: 0.0
+
+periodic: true
+Jx: 1.0
+Jy: 1.0
+Jz: 1.0
+
+observable: photon_number

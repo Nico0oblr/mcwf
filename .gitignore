@@ -1,0 +1,59 @@
+bin/
+build/
+#include/
+lib/
+src/precomp.hpp.gch
+cmake_build/
+tempdata/
+dataf/
+basematrixdir/
+doxydoc/
+
+data
+
+#emacs backup files
+*~
+
+*.mp4
+
+#pdfs
+*.pdf
+
+*.csv
+
+#jupyter notebooks
+*.ipynb
+
+# c++ generic
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
