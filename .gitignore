@@ -13,6 +13,7 @@ data
 
 #emacs backup files
 *~
+*#*
 
 *.mp4
 
