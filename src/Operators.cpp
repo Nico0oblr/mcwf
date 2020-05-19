@@ -244,6 +244,16 @@ mat_t pauli_z() {
   return out;
 }
 
+std::vector<mat_t> operator_vector(const mat_t & op,
+				   int sites) {
+  std::vector<mat_t> matrices;
+  matrices.reserve(sites);
+  for (int i = 0; i < sites; ++i) {
+    matrices.push_back(nth_subsystem(op, i, sites));
+  }
+  return matrices;
+}
+
 std::vector<mat_t> pauli_x_vector(int sites) {
   std::vector<mat_t> x_matrices;
   for (int i = 0; i < sites; ++i) {

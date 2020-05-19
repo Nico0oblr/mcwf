@@ -114,6 +114,12 @@ mat_t nth_subsystem(const mat_t & op,
 		    int n_subsystems);
 
 /*
+  Creates a vector, where the ith element only acts on the ith site
+ */
+std::vector<mat_t> operator_vector(const mat_t & op,
+				   int sites);
+
+/*
   Pauli x matrix for a single spin for z-axis quantized.
 */
 mat_t pauli_x();

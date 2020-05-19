@@ -23,7 +23,117 @@ HSpaceDistribution coherent_photon_state(double mean_photons, int dimension) {
   return HSpaceDistribution({1.0}, {state});
 }
 
+/*
+  Operators in basis |0>, |down>, |up>, |up,down>.
+*/
+namespace HubbardOperators {
+  mat_t c_up_t() {
+    mat_t out(4, 4);
+    out <<
+      0, 0, 0, 0,
+      0, 0, 0, 0,
+      1, 0, 0, 0,
+      0, 1, 0, 0;
+    return out;
+  }
+
+  mat_t c_down_t() {
+    mat_t out(4, 4);
+    out <<
+      0, 0, 0, 0,
+      1, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 1, 0;
+    return out;
+  }
+
+  mat_t c_down() {
+    return c_down_t().adjoint();
+  }
+
+  mat_t c_up() {
+    return c_up_t().adjoint();
+  }
+
+  mat_t n_down() {
+    mat_t out(4, 4);
+    out <<
+      0, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 0, 1;
+    return out;
+  }
+
+  mat_t n_up() {
+    mat_t out(4, 4);
+    out <<
+      0, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1;
+    return out;
+  }
+  
+}
+
+mat_t Hubbard_light_matter(int photon_dimension,
+			   int sites,
+			   double coupling,
+			   double hopping,
+			   double hubbardU,
+			   bool periodic) {
+  mat_t argument = 1.0i * coupling * (creationOperator(photon_dimension)
+				      + annihilationOperator(photon_dimension));
+  mat_t e_iA = matrix_exponential(argument);
+  std::vector<mat_t> c_up = operator_vector(HubbardOperators::c_up(), sites);
+  std::vector<mat_t> c_up_t = operator_vector(HubbardOperators::c_up_t(), sites);
+  std::vector<mat_t> n_up = operator_vector(HubbardOperators::n_up(), sites);;
+  std::vector<mat_t> c_down = operator_vector(HubbardOperators::c_down(), sites);
+  std::vector<mat_t> c_down_t = operator_vector(HubbardOperators::c_down_t(), sites);
+  std::vector<mat_t> n_down = operator_vector(HubbardOperators::n_down(), sites);
+  // Onsite dimension of 4, when |up, down> and |down,up> are identified
+  int dimension = std::pow(4, sites);
+  mat_t hopping_terms = mat_t::Zero(dimension, dimension);
+  mat_t onsite_terms = mat_t::Zero(dimension, dimension);
+
+  for (int i = 0; i + 1 < sites; ++i) {
+    hopping_terms += c_up_t[i] * c_up[i + 1];
+    hopping_terms += c_down_t[i] * c_down[i + 1];
+  }
+
+  if (periodic && sites > 2) {
+    hopping_terms += c_up_t[sites - 1] * c_up[0];
+    hopping_terms += c_down_t[sites - 1] * c_down[0];
+  }
+
+  for (int i = 0; i < sites; ++i) {
+    onsite_terms += n_up[i] * n_down[i];
+  }
+
+  hopping_terms = Eigen::kroneckerProduct(e_iA, - hopping * hopping_terms).eval();
+  onsite_terms = tensor_identity_LHS(hubbardU * onsite_terms, photon_dimension).eval();
+  return hopping_terms + hopping_terms.adjoint() + onsite_terms;
+}
+
 int main(int argc, char ** argv) {
+
+  std::cout << (HubbardOperators::c_up_t() * HubbardOperators::c_up()
+		-HubbardOperators::n_up()).norm() << std::endl;
+  std::cout << (HubbardOperators::c_down_t() * HubbardOperators::c_down()
+		-HubbardOperators::n_down()).norm() << std::endl;
+  std::cout << (HubbardOperators::c_up_t()
+		* HubbardOperators::c_up_t()).norm()
+	    << std::endl;
+  std::cout << (HubbardOperators::c_down_t()
+		* HubbardOperators::c_down_t()).norm()
+	    << std::endl;
+  std::cout << (HubbardOperators::c_up()
+		* HubbardOperators::c_up()).norm()
+	    << std::endl;
+  std::cout << (HubbardOperators::c_down()
+		* HubbardOperators::c_down()).norm()
+	    << std::endl;
   superoperator_test(10);
   // function_tests();  
   /*System creation*/
@@ -61,6 +171,10 @@ int main(int argc, char ** argv) {
   double Jx = parser.parse<double>("Jx");
   double Jy = parser.parse<double>("Jy");
   double Jz = parser.parse<double>("Jz");
+
+  Hubbard_light_matter(dimension, sites, coupling,
+		       hopping, hubbardU, periodic);
+  return 0;
   
   mat_t heisenberg = HeisenbergChain(sites, Jx, Jy, Jz, periodic);
   mat_t exchange = exchange_interaction_full(dimension, hubbardU, hopping,
