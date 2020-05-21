@@ -50,15 +50,15 @@ Eigen::MatrixXd observable_calc(const Lindbladian & system,
 				int runs,
 				const spmat_t & observable) {
   std::cout << "starting mcwf observable run" << std::endl;
-  spmat_t propagator = matrix_exponential(-1.0i * system.hamiltonian() * dt).sparseView();
+  spmat_t propagator = matrix_exponential_taylor(-1.0i * system.hamiltonian() * dt).sparseView();
   std::cout << "percentage zeroes propagator: "
 	    << propagator.nonZeros()
     / static_cast<double>(propagator.size()) << std::endl;
-  
   int time_steps = static_cast<int>(time / dt);
   Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
 #pragma omp parallel for
   for (int i = 0; i < runs; ++i) {
+#pragma omp critical
     std::cout << i << std::endl;
     vec_t state = state_distro.draw();
     double t = 0.0;
@@ -70,19 +70,20 @@ Eigen::MatrixXd observable_calc(const Lindbladian & system,
   return n_ensemble;
 }
 
-/*Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
+Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
 				     const HSpaceDistribution & state_distro,
-				     const mat_t & propagator,
 				     double t1, double t2, double dt,
 				     int runs,
 				     const mat_t A0,
 				     const mat_t A1) {
+  spmat_t propagator = matrix_exponential(-1.0i * system.hamiltonian() * dt).sparseView();
   int sub_dim = system.m_system_hamiltonian.cols();
   Lindbladian doubled_system(double_matrix(system.m_system_hamiltonian),
 			     double_matrix(system.m_lindblad_operators),
 			     system.m_lindblad_amplitudes);
-  mat_t doubled_propagator = double_matrix(propagator);
+  spmat_t doubled_propagator = double_matrix(propagator).sparseView();
   int time_steps = static_cast<int>((t2 - t1) / dt);
+  print_matrix_dim(doubled_propagator);
 
   Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
   for (int i = 0; i < runs; ++i) {
@@ -105,7 +106,7 @@ Eigen::MatrixXd observable_calc(const Lindbladian & system,
     }
   }
   return n_ensemble;
-  }*/
+}
 
 std::vector<mat_t>
 density_matrix_mcwf(const Lindbladian & system,

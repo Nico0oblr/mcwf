@@ -24,13 +24,12 @@ Eigen::MatrixXd observable_calc(const Lindbladian & system,
 /*
   Two-time correlation function for fixed times t1 and t0.
 */
-/*Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
+Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
 				     const HSpaceDistribution & state_distro,
-				     const mat_t & propagator,
 				     double t1, double t2, double dt,
 				     int runs,
 				     const mat_t A0,
-				     const mat_t A1);*/
+				     const mat_t A1);
 
 std::vector<mat_t>
 density_matrix_mcwf(const Lindbladian & system,

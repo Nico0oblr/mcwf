@@ -13,8 +13,8 @@ Lindbladian thermalCavity(double n_b,
   mat_t A = annihilationOperator(dimension);
   mat_t A_t = creationOperator(dimension);
   mat_t n = numberOperator(dimension);
-  return Lindbladian(frequency * n, {A, A_t},
-		     {gamma * (1.0 + n_b), gamma * n_b});
+  std::vector<scalar_t> ampl{gamma * (1.0 + n_b), gamma * n_b};
+  return Lindbladian(frequency * n, {A, A_t}, ampl);
 }
 
 Lindbladian drivenCavity(double n_b,
@@ -22,13 +22,15 @@ Lindbladian drivenCavity(double n_b,
 			 scalar_t gamma,
 			 std::complex<double> amplitude,
 			 int dimension) {
+  std::cout << "ampltiude: " << amplitude << std::endl;
   mat_t A = annihilationOperator(dimension);
   mat_t A_t = creationOperator(dimension);
   mat_t n = numberOperator(dimension);
-
+  std::vector<scalar_t> ampl{gamma * (1.0 + n_b), gamma * n_b};
+  std::cout << "amplitude: " << amplitude << std::endl;
   return Lindbladian(frequency * n + 0.5 * amplitude * A
 		     + 0.5 * std::conj(amplitude) * A_t,
-		     {A, A_t}, {gamma * (1.0 + n_b), gamma * n_b});
+		     {A, A_t}, ampl);
 }
 
 Lindbladian::Lindbladian(const mat_t & system_hamiltonian,
@@ -100,4 +102,23 @@ spmat_t Lindbladian::superoperator() const {
     out += m_lindblad_amplitudes[i] * (mat1 * mat2 - 0.5 * mat3 - 0.5 * mat4);
   }
   return out;
+}
+
+Lindbladian::Lindbladian(const mat_t & system_hamiltonian,
+			 const std::vector<mat_t> & lindblad_operators,
+			 const Eigen::MatrixXd & lindblad_matrix)
+  :m_system_hamiltonian(system_hamiltonian) {
+  assert((lindblad_matrix-lindblad_matrix.adjoint()).norm() < tol);
+  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(lindblad_matrix);
+  mat_t U_adj = solver.eigenvectors().adjoint();
+  Eigen::VectorXd gamma = solver.eigenvalues();
+  for (int i = 0; i < gamma.size(); ++i) {
+    m_lindblad_operators.push_back(U_adj(0, i) * lindblad_operators[0]);
+    m_lindblad_amplitudes.push_back(gamma[i]);
+    for (int j = 1; j < gamma.size(); ++j) {
+      m_lindblad_operators[i] += U_adj(j, i) * lindblad_operators[j];
+    }
+  }
+  calculate_nh_term();
+  std::cout << gamma << std::endl;
 }

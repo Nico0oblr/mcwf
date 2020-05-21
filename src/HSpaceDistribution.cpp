@@ -56,3 +56,15 @@ mat_t HSpaceDistribution::density_matrix() const {
   }
   return out;
 }
+
+HSpaceDistribution coherent_photon_state(double mean_photons, int dimension) {
+  if (mean_photons < tol) return HSpaceDistribution({1.0}, {0}, dimension);
+  std::cout << "mean photons: " << mean_photons << std::endl;
+  vec_t state = vec_t::Zero(dimension);
+  for (int i = 0; i < dimension; ++i) {
+    state(i) = poisson(mean_photons, i);
+  }
+  state /= state.norm();
+  std::cout << state.transpose().real() << std::endl;
+  return HSpaceDistribution({1.0}, {state});
+}

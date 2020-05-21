@@ -116,7 +116,7 @@ int minus_one_power(int n) {
 
 double poisson(double N, int n) {
   double out = -N + n * std::log(N);
-  for (int m = 1; m < n; ++m) out -= std::log(m);
+  for (int m = 1; m <= n; ++m) out -= std::log(m);
   return std::exp(0.5 * out);
 }
 

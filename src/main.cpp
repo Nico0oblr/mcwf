@@ -1,6 +1,3 @@
-#include <vector>
-#include <iostream>
-#include <complex>
 #include <fstream>
 #include <omp.h>
 
@@ -12,142 +9,24 @@
 #include "mcwf_functions.hpp"
 #include "runge_kutta_solver.hpp"
 #include "direct_solver.hpp"
+#include "HubbardModel.hpp"
+#include "toy_spin_model.hpp"
+#include "direct_closed_solver.hpp"
 #include "tests.hpp"
 
-HSpaceDistribution coherent_photon_state(double mean_photons, int dimension) {
-  vec_t state = vec_t::Zero(dimension);
-  for (int i = 0; i < dimension; ++i) {
-    state(i) = poisson(mean_photons, i);
-  }
-  state /= state.norm();
-  return HSpaceDistribution({1.0}, {state});
-}
-
-/*
-  Operators in basis |0>, |down>, |up>, |up,down>.
-*/
-namespace HubbardOperators {
-  mat_t c_up_t() {
-    mat_t out(4, 4);
-    out <<
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      1, 0, 0, 0,
-      0, 1, 0, 0;
-    return out;
-  }
-
-  mat_t c_down_t() {
-    mat_t out(4, 4);
-    out <<
-      0, 0, 0, 0,
-      1, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 1, 0;
-    return out;
-  }
-
-  mat_t c_down() {
-    return c_down_t().adjoint();
-  }
-
-  mat_t c_up() {
-    return c_up_t().adjoint();
-  }
-
-  mat_t n_down() {
-    mat_t out(4, 4);
-    out <<
-      0, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 1;
-    return out;
-  }
-
-  mat_t n_up() {
-    mat_t out(4, 4);
-    out <<
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1;
-    return out;
-  }
-  
-}
-
-mat_t Hubbard_light_matter(int photon_dimension,
-			   int sites,
-			   double coupling,
-			   double hopping,
-			   double hubbardU,
-			   bool periodic) {
-  mat_t argument = 1.0i * coupling * (creationOperator(photon_dimension)
-				      + annihilationOperator(photon_dimension));
-  mat_t e_iA = matrix_exponential(argument);
-  std::vector<mat_t> c_up = operator_vector(HubbardOperators::c_up(), sites);
-  std::vector<mat_t> c_up_t = operator_vector(HubbardOperators::c_up_t(), sites);
-  std::vector<mat_t> n_up = operator_vector(HubbardOperators::n_up(), sites);;
-  std::vector<mat_t> c_down = operator_vector(HubbardOperators::c_down(), sites);
-  std::vector<mat_t> c_down_t = operator_vector(HubbardOperators::c_down_t(), sites);
-  std::vector<mat_t> n_down = operator_vector(HubbardOperators::n_down(), sites);
-  // Onsite dimension of 4, when |up, down> and |down,up> are identified
-  int dimension = std::pow(4, sites);
-  mat_t hopping_terms = mat_t::Zero(dimension, dimension);
-  mat_t onsite_terms = mat_t::Zero(dimension, dimension);
-
-  for (int i = 0; i + 1 < sites; ++i) {
-    hopping_terms += c_up_t[i] * c_up[i + 1];
-    hopping_terms += c_down_t[i] * c_down[i + 1];
-  }
-
-  if (periodic && sites > 2) {
-    hopping_terms += c_up_t[sites - 1] * c_up[0];
-    hopping_terms += c_down_t[sites - 1] * c_down[0];
-  }
-
-  for (int i = 0; i < sites; ++i) {
-    onsite_terms += n_up[i] * n_down[i];
-  }
-
-  hopping_terms = Eigen::kroneckerProduct(e_iA, - hopping * hopping_terms).eval();
-  onsite_terms = tensor_identity_LHS(hubbardU * onsite_terms, photon_dimension).eval();
-  return hopping_terms + hopping_terms.adjoint() + onsite_terms;
-}
-
 int main(int argc, char ** argv) {
-
-  std::cout << (HubbardOperators::c_up_t() * HubbardOperators::c_up()
-		-HubbardOperators::n_up()).norm() << std::endl;
-  std::cout << (HubbardOperators::c_down_t() * HubbardOperators::c_down()
-		-HubbardOperators::n_down()).norm() << std::endl;
-  std::cout << (HubbardOperators::c_up_t()
-		* HubbardOperators::c_up_t()).norm()
-	    << std::endl;
-  std::cout << (HubbardOperators::c_down_t()
-		* HubbardOperators::c_down_t()).norm()
-	    << std::endl;
-  std::cout << (HubbardOperators::c_up()
-		* HubbardOperators::c_up()).norm()
-	    << std::endl;
-  std::cout << (HubbardOperators::c_down()
-		* HubbardOperators::c_down()).norm()
-	    << std::endl;
+  std::cout << "Starting program" << std::endl;
   superoperator_test(10);
-  // function_tests();  
+  hubbard_tests();
+  function_tests();
   /*System creation*/
   YamlOrCMD parser(argv, argc, "config.yaml");
   int num_threads = parser.parse<int>("num_threads");
   omp_set_dynamic(0);
   omp_set_num_threads(num_threads);
-
   // Photonic truncation
   int dimension = parser.parse<int>("dimension");
   PrecomputedOperators.precompute(dimension);
-  std::cout << PrecomputedOperators.A_t_powers.size() << std::endl;
-  std::cout << PrecomputedOperators.A_powers.size() << std::endl;
-  
   // Number of spin sites
   int sites = parser.parse<int>("sites");
   // Number of realizations for mcwf
@@ -172,26 +51,46 @@ int main(int argc, char ** argv) {
   double Jy = parser.parse<double>("Jy");
   double Jz = parser.parse<double>("Jz");
 
-  Hubbard_light_matter(dimension, sites, coupling,
-		       hopping, hubbardU, periodic);
-  return 0;
+  std::string model = parser.parse<std::string>("model");
+  mat_t light_matter;
   
-  mat_t heisenberg = HeisenbergChain(sites, Jx, Jy, Jz, periodic);
-  mat_t exchange = exchange_interaction_full(dimension, hubbardU, hopping,
-					     frequency,coupling, dimension);
-  std::cout << exchange.real() << std::endl;
+  mat_t hubbard_projector = HubbardProjector(sites, sites / 2, sites / 2);
+  mat_t hubbard_proj = tensor_identity_LHS(hubbard_projector, dimension);
+  int elec_dim = hubbard_projector.rows();
+  if (model == "hubbard") {
+    light_matter = Hubbard_light_matter(dimension, sites, coupling,
+					      hopping, hubbardU, periodic);
+    print_matrix_dim(light_matter);
+    print_matrix_dim(hubbard_proj);
+    light_matter = (hubbard_proj * light_matter * hubbard_proj.adjoint()).eval();
+  } else if (model == "heisenberg") {
+    mat_t heisenberg = HeisenbergChain(sites, Jx, Jy, Jz, periodic);
+    mat_t exchange = exchange_interaction_full(dimension, hubbardU, hopping,
+					       frequency,coupling, dimension);
   
-  mat_t light_matter = Eigen::kroneckerProduct(exchange, heisenberg);
-  int elec_dim = heisenberg.cols();
+    light_matter = Eigen::kroneckerProduct(exchange, heisenberg);
+    
+  } else if (model == "none") {
+    light_matter = mat_t::Zero(dimension, dimension);
+    elec_dim = 1;
+  } else if (model == "toy_spin") {
+    mat_t heisenberg = HeisenbergChain(sites, Jx, Jy, Jz, periodic);
+    light_matter = toy_modelize(dimension, heisenberg,
+				hubbardU, hopping,
+				frequency,coupling);
+  }
+
   Lindbladian system = drivenCavity(temperature,
 				    frequency - laser_frequency, gamma,
 				    laser_amplitude, dimension);
+  std::cout << system.m_system_hamiltonian << std::endl;
   if (sites > 0) {
     std::cout << "light_matter norm: " << light_matter.norm() << std::endl;
     system.add_subsystem(light_matter);
   }
   /*System created. Defining observable*/
 
+  
   std::string observable_name = parser.parse<std::string>("observable");
   mat_t observable;
   if (observable_name == "photon_number") {
@@ -201,14 +100,23 @@ int main(int argc, char ** argv) {
     mat_t A_t = creationOperator(dimension);
     observable = tensor_identity(A + A_t, elec_dim);
   } else if (observable_name == "spin_energy") {
-    observable = tensor_identity_LHS(heisenberg, dimension);
-    // observable = light_matter;
+    // observable = tensor_identity_LHS(heisenberg, dimension);
+    observable = light_matter;
   } else if (observable_name == "total_spin") {
     observable = tensor_identity_LHS(0.5 * pauli_z_total(sites), dimension);
   } else if (observable_name == "total_spin_squared") {
     observable = tensor_identity_LHS(0.25 * pauli_squared_total(sites), dimension);
+  } else if (observable_name == "single_spin" && model == "hubbard") {
+    observable = 0.5 * tensor_identity_LHS
+      (nth_subsystem(HubbardOperators::n_up()
+		     - HubbardOperators::n_down(), 0, sites), dimension);
+    observable = (hubbard_proj * observable * hubbard_proj.adjoint()).eval();
+    std::cout << "observable" << std::endl;
     print_matrix_dim(observable);
-  } else if (observable_name == "single_spin") {
+    std::cout << "light_matter" << std::endl;
+    print_matrix_dim(light_matter);
+  } else if (observable_name == "single_spin"
+	     && (model == "heisenberg" || model == "toy_spin")) {
     observable = tensor_identity_LHS(0.5 * pauli_z_vector(sites)[0],
 				     dimension);
   } else if (observable_name == "alternating_spin") {
@@ -221,12 +129,13 @@ int main(int argc, char ** argv) {
     }
 
     observable = tensor_identity_LHS(observable, dimension);
-    print_matrix_dim(observable);
   } else {
     assert(false);
   }
 
-  std::cout << heisenberg.real() << std::endl;
+  print_matrix_dim(observable);
+  print_matrix_dim(light_matter);
+  
   /*Defining beginning state distributions*/
   // Vacuum
   /*HSpaceDistribution state_distro({1.0}, {static_cast<int>(temperature)},
@@ -234,13 +143,51 @@ int main(int argc, char ** argv) {
   HSpaceDistribution state_distro = coherent_photon_state(temperature, dimension);
   // Boundary condition for spins
   int boundary_state = parser.parse<int>("boundary_state");
-  assert(boundary_state < elec_dim || sites <= 0);
+  assert(boundary_state < elec_dim || sites <= 0 || model == "none");
 
-  if (sites > 0) {
+  if (sites > 0 && (model == "heisenberg") || (model == "toy_spin")) {
     HSpaceDistribution electronic_distro({1.0}, {boundary_state}, elec_dim);
     state_distro += electronic_distro;
-  }
+  } else if (sites > 0 && model ==  "hubbard") {
+    HSpaceDistribution electronic_distro = HubbardNeelState(sites,
+							    hubbard_projector);
+    state_distro += electronic_distro;
+  } 
+
+
+
+  /*Correlation function playground*/
   std::string method = parser.parse<std::string>("method");
+  /*double time1 = parser.parse<double>("time1");
+  if (method == "mcwf") {
+    Eigen::MatrixXd n_ensemble = two_time_correlation(system,
+						      state_distro,
+						      time1, time, dt,
+						      runs, observable,
+						      observable);
+    Eigen::VectorXd averaged = n_ensemble.colwise().mean();
+    std::ofstream output("results.csv");
+    Eigen::IOFormat fmt(Eigen::StreamPrecision,
+			Eigen::DontAlignCols, ", ", ", ", "", "", "", "");
+    output << averaged.format(fmt) << std::endl;
+    output.close();
+    return 0;
+  } else if (method == "direct") {
+    Eigen::VectorXd averaged = two_time_correlation_direct(system,
+							   state_distro,
+							   time1, time, dt,
+							   observable,
+							   observable);
+      std::ofstream output("results.csv");
+    Eigen::IOFormat fmt(Eigen::StreamPrecision,
+			Eigen::DontAlignCols, ", ", ", ", "", "", "", "");
+    output << averaged.format(fmt) << std::endl;
+    output.close();
+    return 0;
+    }*/
+
+
+  
   if (method == "compare") {
     std::vector<mat_t> kutta_dmat = density_matrix_kutta(system, state_distro,
 							 time, dt, observable);
@@ -283,13 +230,16 @@ int main(int argc, char ** argv) {
   } else if (method == "direct") {
     n_averaged = observable_direct(system, state_distro,
 				   time, dt, observable);
+  } else if (method == "direct_closed") {
+    n_averaged = direct_closed_observable(system.m_system_hamiltonian,
+					  state_distro.draw(),
+					  time, dt, observable.sparseView());
   } else {
     assert(false);
   }
   /*Average data and write to file*/
   std::ofstream output("results.csv");
   Eigen::IOFormat fmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", "");
-  // Eigen::VectorXd nsq_averaged = n_ensemble.array().square().matrix().colwise().mean();
-  output << n_averaged.format(fmt) << std::endl; //  << nsq_averaged.format(fmt) << std::endl;
+  output << n_averaged.format(fmt) << std::endl;
   output.close();
 }

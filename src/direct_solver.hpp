@@ -15,4 +15,12 @@ Eigen::VectorXd observable_direct(const Lindbladian & system,
 				  double time, double dt,
 				  const mat_t & observable);
 
+Eigen::VectorXd
+two_time_correlation_direct(const Lindbladian & system,
+			    const HSpaceDistribution & state_distro,
+			    double t0, double t1,
+			    double dt,
+			    const mat_t & A,
+			    const mat_t & B);
+
 #endif /* DIRECT_SOLVER_HPP */

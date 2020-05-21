@@ -25,6 +25,14 @@ struct Lindbladian {
   Lindbladian(const mat_t & system_hamiltonian,
 	      const std::vector<mat_t> & lindblad_operators,
 	      const std::vector<scalar_t> & lindblad_amplitudes);
+
+  /*
+    Constructor for nondiagonal Lindblad equation, that must first
+    be diagonalized.
+   */
+  Lindbladian(const mat_t & system_hamiltonian,
+	      const std::vector<mat_t> & lindblad_operators,
+	      const Eigen::MatrixXd & lindblad_matrix);
 };
 
 scalar_t bose_distribution(double temperature,

@@ -104,6 +104,15 @@ mat_t exchange_interaction(int dimension,
 			   double coupling);
 
 /*
+  Exchange interaction J0
+*/
+mat_t J0(int dimension,
+	 double hubbardU,
+	 double hopping,
+	 double frequency,
+	 double coupling);
+
+/*
   Generates an operator
   Id \tensor Id ... \tensor op \tensor id ...
   where the position of op is n_subsystem and

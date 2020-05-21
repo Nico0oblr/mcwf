@@ -48,4 +48,6 @@ private:
   std::vector<vec_t> m_states;
 };
 
+HSpaceDistribution coherent_photon_state(double mean_photons, int dimension);
+
 #endif /* HSPACEDISTRIBUTION_HPP */

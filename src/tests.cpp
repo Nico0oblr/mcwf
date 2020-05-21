@@ -2,6 +2,7 @@
 
 #include "Common.hpp"
 #include "Operators.hpp"
+#include "HubbardModel.hpp"
 
 void superoperator_test(int dimension) {
   mat_t vec = Eigen::MatrixXd::Random(dimension, dimension);
@@ -40,4 +41,19 @@ void function_tests() {
 			  -2.0*L_p(1.5, 0.05, 1)-2.0*L_p(1.5, 0.05, -1)
 			  +L_p(1.5, 0.05, 2))) < tol);
   assert(std::abs(L_c_m(1.5, 0.05, 0, 0) - L_p(1.5, 0.05, 0)) < tol);
+}
+
+void hubbard_tests() {
+  assert((HubbardOperators::c_up_t() * HubbardOperators::c_up()
+	  -HubbardOperators::n_up()).norm() < tol);
+  assert((HubbardOperators::c_down_t() * HubbardOperators::c_down()
+	  -HubbardOperators::n_down()).norm() < tol);
+  assert((HubbardOperators::c_up_t()
+	  * HubbardOperators::c_up_t()).norm() < tol);
+  assert((HubbardOperators::c_down_t()
+	  * HubbardOperators::c_down_t()).norm() < tol);
+  assert((HubbardOperators::c_up()
+	  * HubbardOperators::c_up()).norm() < tol);
+  assert((HubbardOperators::c_down()
+	  * HubbardOperators::c_down()).norm()< tol);
 }

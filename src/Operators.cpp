@@ -129,7 +129,6 @@ mat_t exchange_interaction(int dimension,
   return out;
 }
 
-
 double L_p(double omega_bar, double coupling, int p) {
   double g_sq = coupling * coupling;
   double out = 0;
@@ -198,6 +197,20 @@ spmat_t exchange_interaction_full(int dimension,
   JI += spmat_t(JI.adjoint());
   return J_ex * (J0 + JI);
 }
+
+
+mat_t J0(int dimension,
+	 double hubbardU,
+	 double hopping,
+	 double frequency,
+	 double coupling) {
+  double wbar = frequency / hubbardU;
+  double J_ex = 4.0 * hopping * hopping / hubbardU;
+  spmat_t J_0 = exchange_interaction_term(0, dimension,
+					  coupling, wbar, dimension);
+  return J_ex * J_0;
+}
+
 
 mat_t nth_subsystem(const mat_t & op,
 		    int n_subsystem,
