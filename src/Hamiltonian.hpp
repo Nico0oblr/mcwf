@@ -225,7 +225,7 @@ public:
     auto f1 = m_hamiltonian;
     MatrixType val = other(0.0);
     m_hamiltonian = [f1, val, comp](double time)
-		    {return comp(f1(time), val);};
+		    -> MatrixType {return comp(f1(time), val);};
     return *this;
   }
 

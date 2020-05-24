@@ -3,6 +3,7 @@
 
 #include "Common.hpp"
 #include "Hamiltonian.hpp"
+#include "Recorders.hpp"
 
 class Lindbladian;
 class HSpaceDistribution;
@@ -18,11 +19,10 @@ void perform_time_step(const Lindbladian & system,
 /*
   Do mcwf run and evaluate the observable given. 
 */
-Eigen::MatrixXd observable_calc(const Lindbladian & system,
-				const HSpaceDistribution & state_distro,
-				double time, double dt,
-				int runs,
-				const calc_mat_t & observable);
+void observable_calc(const Lindbladian & system,
+		     const HSpaceDistribution & state_distro,
+		     double time, double dt, int runs,
+		     MCWFRecorder & recorder);
 
 /*
   Two-time correlation function for fixed times t1 and t0.
@@ -31,14 +31,8 @@ Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
 				     const HSpaceDistribution & state_distro,
 				     double t1, double t2, double dt,
 				     int runs,
-				     const mat_t A0,
-				     const mat_t A1);
-
-std::vector<mat_t>
-density_matrix_mcwf(const Lindbladian & system,
-		    const HSpaceDistribution & state_distro,
-		    double time, double dt,
-		    int runs);
+				     const calc_mat_t A0,
+				     const calc_mat_t A1);
 
 /*
   For the calculation of a two-time correlation function <A(t_2)B(t_1)>. one has to split the trajectory at time t_1

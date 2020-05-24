@@ -78,7 +78,6 @@ double L_c_m(double omega_bar, double coupling, int c, int m);
   mth term of the photon-diagonal exchange interaction
 */
 spmat_t exchange_interaction_term(int m,
-				  int order,
 				  double coupling,
 				  double omega_bar,
 				  int dimension);

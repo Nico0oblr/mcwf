@@ -155,7 +155,6 @@ double L_c_m(double omega_bar, double coupling, int c, int m) {
 }
 
 spmat_t exchange_interaction_term(int m,
-				  int order,
 				  double coupling,
 				  double omega_bar,
 				  int dimension) {
@@ -185,12 +184,12 @@ spmat_t exchange_interaction_full(int dimension,
 				  int order) {  
   double wbar = frequency / hubbardU;
   double J_ex = 4.0 * hopping * hopping / hubbardU;
-  spmat_t J0 = exchange_interaction_term(0, order, coupling, wbar, dimension);
+  spmat_t J0 = exchange_interaction_term(0, coupling, wbar, dimension);
   spmat_t JI(J0.rows(), J0.cols());
 
   for (int m = 1; m < order; ++m) {
     spmat_t term = PrecomputedOperators.A_t(2 * m)
-      * exchange_interaction_term(m, order, coupling, wbar, dimension);
+      * exchange_interaction_term(m, coupling, wbar, dimension);
     JI += term;
   }
 
@@ -206,8 +205,7 @@ mat_t J0(int dimension,
 	 double coupling) {
   double wbar = frequency / hubbardU;
   double J_ex = 4.0 * hopping * hopping / hubbardU;
-  spmat_t J_0 = exchange_interaction_term(0, dimension,
-					  coupling, wbar, dimension);
+  spmat_t J_0 = exchange_interaction_term(0, coupling, wbar, dimension);
   return J_ex * J_0;
 }
 

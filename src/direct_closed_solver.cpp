@@ -4,14 +4,13 @@
 #include "Lindbladian.hpp"
 #include "Operators.hpp"
 
-Eigen::VectorXd direct_closed_observable(Hamiltonian<calc_mat_t> & system,
-					 const vec_t & cstate,
-					 double time, double dt,
-					 const calc_mat_t & observable) {
+void direct_closed_observable(Hamiltonian<calc_mat_t> & system,
+			      const vec_t & cstate,
+			      double time, double dt,
+			      RecorderHost<vec_t> & recorder) {
   vec_t state = cstate;
   int time_steps = static_cast<int>(time / dt);
-  Eigen::VectorXd n_ensemble = Eigen::VectorXd::Zero(time_steps);
-  std::cout << "initial: " << expval(observable, state) << std::endl;
+  // Eigen::VectorXd n_ensemble = Eigen::VectorXd::Zero(time_steps);
   
   double t = 0;
   for (int j = 0; j < time_steps; ++j, t += dt) {
@@ -20,10 +19,11 @@ Eigen::VectorXd direct_closed_observable(Hamiltonian<calc_mat_t> & system,
     state = system.propagate(t, dt, state);
     // Just in case. Numerical errors increase norm when using many time steps.
     state /= state.norm();
-    n_ensemble(j) = expval(observable, state);
+    // n_ensemble(j) = expval(observable, state);
+    recorder.record(state);
   }
   
-  return n_ensemble;
+  // return n_ensemble;
 }
 
 Eigen::VectorXd

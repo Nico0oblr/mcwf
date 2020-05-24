@@ -1,11 +1,14 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #define EIGEN_DONT_PARALLELIZE
 #define EIGEN_SPARSEMATRIX_PLUGIN "SparseAddons.h"
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/KroneckerProduct>
+#pragma GCC diagnostic pop
+
 #include <random>
 #include <iostream>
 
@@ -15,12 +18,13 @@ using scalar_t = std::complex<double>;
 using vec_t = Eigen::Matrix<scalar_t, Eigen::Dynamic, 1>;
 using mat_t = Eigen::Matrix<scalar_t, Eigen::Dynamic, Eigen::Dynamic>;
 using spmat_t = Eigen::SparseMatrix<scalar_t>;
-using calc_mat_t = mat_t;
+using calc_mat_t = spmat_t;
 /*Mersenne twister random engine*/
 static std::mt19937 mt_rand(110794);
 static std::uniform_real_distribution<double> dis(0.0, 1.0);
 /*Numerical tolerance for double comp*/
-static double tol = 1e-10;
+const double tol = 1e-10;
+using size_type = std::size_t;
 
 spmat_t cI(Eigen::Index n, std::complex<double> value);
 
@@ -78,7 +82,6 @@ vec_t add_vectors(const vec_t & vec1, const vec_t & vec2);
 */
 template<typename vector_type>
 int linear_search(const vector_type & probabilities) {
-  std::uniform_real_distribution<double> dis(0.0, 1.0);
   double eta = dis(mt_rand);
   double cumulative = 0.0;
   for (int i = 0; i < probabilities.size(); ++i) {

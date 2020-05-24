@@ -41,7 +41,7 @@ public:
   /*
     Construct corresponding density matrix
   */
-  mat_t density_matrix() const;
+  calc_mat_t density_matrix() const;
   
 private:
   std::vector<double> m_probabilities;

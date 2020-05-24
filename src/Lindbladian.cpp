@@ -59,13 +59,13 @@ Lindbladian::Lindbladian(const Lindbladian & other)
 std::unique_ptr<Hamiltonian<calc_mat_t>> Lindbladian::hamiltonian() const {
   std::unique_ptr<Hamiltonian<calc_mat_t>> hamiltonian_copy =
     m_system_hamiltonian->clone();
-  hamiltonian_copy->add( - 0.5i * m_nh_term);
+  hamiltonian_copy->add(- 0.5i * m_nh_term);
   return hamiltonian_copy;
 }
 
 void Lindbladian::add_subsystem(const calc_mat_t sub_hamiltonian) {
   int sub_dim = sub_hamiltonian.cols() / m_system_hamiltonian->dimension();
-  for (int i = 0; i < m_lindblad_operators.size(); ++i) {
+  for (size_type i = 0; i < m_lindblad_operators.size(); ++i) {
     m_lindblad_operators[i] = tensor_identity(m_lindblad_operators[i],
 					      sub_dim);
   }
@@ -78,7 +78,7 @@ void Lindbladian::calculate_nh_term() {
   if (m_lindblad_operators.size() > 0) {
     m_nh_term = m_lindblad_operators[0].adjoint() * m_lindblad_operators[0]
       * m_lindblad_amplitudes[0];
-    for (int i = 1; i < m_lindblad_operators.size(); ++i) {
+    for (size_type i = 1; i < m_lindblad_operators.size(); ++i) {
       m_nh_term += m_lindblad_operators[i].adjoint() * m_lindblad_operators[i]
 	* m_lindblad_amplitudes[i];
     }
@@ -88,7 +88,7 @@ void Lindbladian::calculate_nh_term() {
 calc_mat_t Lindbladian::operator()(double time, const calc_mat_t & density_matrix) const {
   calc_mat_t out = - 1.0i * ((*m_system_hamiltonian)(time) * density_matrix
 			- density_matrix * (*m_system_hamiltonian)(time));
-  for (int i = 0; i < m_lindblad_operators.size(); ++i) {
+  for (size_type i = 0; i < m_lindblad_operators.size(); ++i) {
     if (std::abs(m_lindblad_amplitudes[i]) < tol) continue;
     calc_mat_t adj_op = m_lindblad_operators[i].adjoint();
     out += m_lindblad_amplitudes[i]
@@ -109,7 +109,7 @@ std::unique_ptr<Hamiltonian<calc_mat_t>> Lindbladian::superoperator() const {
 						 dimension).sparseView()
 			      - superoperator_right((*system_hamiltonian)(time),
 						    dimension).sparseView());
-      for (int i = 0; i < lindblad_operators.size(); ++i) {
+      for (size_type i = 0; i < lindblad_operators.size(); ++i) {
 	mat_t adj_op = lindblad_operators[i].adjoint();
 	calc_mat_t mat1 = superoperator_left(lindblad_operators[i],
 					  dimension).sparseView();
@@ -150,10 +150,10 @@ std::unique_ptr<Hamiltonian<calc_mat_t>> Lindbladian::superoperator() const {
 					   dimension);
   
   if (m_system_hamiltonian->is_time_dependent()) {
-    return TimeIndependentHamiltonian<calc_mat_t>(superoperator_struct(0.0)).clone();
-  } else {
     return TimeDependentHamiltonian<calc_mat_t>(superoperator_struct,
-					     dimension * dimension).clone();
+						dimension * dimension).clone();
+  } else {
+    return TimeIndependentHamiltonian<calc_mat_t>(superoperator_struct(0.0)).clone();
   }
 }
 

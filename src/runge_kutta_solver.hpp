@@ -2,18 +2,13 @@
 #define RUNGE_KUTTA_SOLVER_HPP
 
 #include "Common.hpp"
+#include "Recorders.hpp"
 class Lindbladian;
 class HSpaceDistribution;
 
-Eigen::VectorXd observable_kutta(const Lindbladian & system,
-				 const HSpaceDistribution & state_distro,
-				 double time, double dt,
-				 const mat_t & observable);
-
-std::vector<mat_t>
-density_matrix_kutta(const Lindbladian & system,
-		     const HSpaceDistribution & state_distro,
-		     double time, double dt,
-		     const mat_t & observable);
+void observable_kutta(const Lindbladian & system,
+		      const HSpaceDistribution & state_distro,
+		      double time, double dt,
+		      RecorderHost<calc_mat_t> & recorder);
 
 #endif /* RUNGE_KUTTA_SOLVER_HPP */

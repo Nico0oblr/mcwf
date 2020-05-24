@@ -1,56 +1,53 @@
+#include "HubbardModel.hpp"
 #include "Operators.hpp"
-
 #include "HSpaceDistribution.hpp"
 
-namespace HubbardOperators {
-  mat_t c_up_t() {
-    mat_t out(4, 4);
-    out <<
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      1, 0, 0, 0,
-      0, 1, 0, 0;
-    return out;
-  }
+mat_t HubbardOperators::c_up_t() {
+  mat_t out(4, 4);
+  out <<
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    1, 0, 0, 0,
+    0, 1, 0, 0;
+  return out;
+}
 
-  mat_t c_down_t() {
-    mat_t out(4, 4);
-    out <<
-      0, 0, 0, 0,
-      1, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 1, 0;
-    return out;
-  }
+mat_t HubbardOperators::c_down_t() {
+  mat_t out(4, 4);
+  out <<
+    0, 0, 0, 0,
+    1, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 1, 0;
+  return out;
+}
 
-  mat_t c_down() {
-    return c_down_t().adjoint();
-  }
+mat_t HubbardOperators::c_down() {
+  return c_down_t().adjoint();
+}
 
-  mat_t c_up() {
-    return c_up_t().adjoint();
-  }
+mat_t HubbardOperators::c_up() {
+  return c_up_t().adjoint();
+}
 
-  mat_t n_down() {
-    mat_t out(4, 4);
-    out <<
-      0, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 1;
-    return out;
-  }
+mat_t HubbardOperators::n_down() {
+  mat_t out(4, 4);
+  out <<
+    0, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 1;
+  return out;
+}
 
-  mat_t n_up() {
-    mat_t out(4, 4);
-    out <<
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1;
-    return out;
-  }
-  
+mat_t HubbardOperators::n_up() {
+  mat_t out(4, 4);
+  out <<
+    0, 0, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1;
+  return out;
 }
 
 mat_t Hubbard_hamiltonian(int sites,
@@ -170,7 +167,7 @@ mat_t HubbardProjector(int sites, int total_spins_up, int total_spins_down) {
   }
 
   mat_t projection = mat_t::Zero(projection_basis.size(), dimension);
-  for (int i = 0; i < projection_basis.size(); ++i) {
+  for (size_type i = 0; i < projection_basis.size(); ++i) {
     projection.row(i) = vec_t::Unit(dimension, projection_basis[i]);
   }
 
