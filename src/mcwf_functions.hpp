@@ -2,6 +2,8 @@
 #define MCWF_FUNCTIONS_HPP
 
 #include "Common.hpp"
+#include "Hamiltonian.hpp"
+
 class Lindbladian;
 class HSpaceDistribution;
 
@@ -9,7 +11,8 @@ vec_t jump_process(const vec_t & state,
 		   const Lindbladian & system);
 
 void perform_time_step(const Lindbladian & system,
-		       const spmat_t & propagator,
+		       Hamiltonian<calc_mat_t> & hamiltonian,
+		       double t, double dt,
 		       vec_t & state);
 
 /*
@@ -19,7 +22,7 @@ Eigen::MatrixXd observable_calc(const Lindbladian & system,
 				const HSpaceDistribution & state_distro,
 				double time, double dt,
 				int runs,
-				const spmat_t & observable);
+				const calc_mat_t & observable);
 
 /*
   Two-time correlation function for fixed times t1 and t0.

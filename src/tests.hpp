@@ -7,4 +7,6 @@ void function_tests();
 
 void hubbard_tests();
 
+void run_tests();
+
 #endif /* TESTS_HPP */

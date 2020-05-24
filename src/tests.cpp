@@ -57,3 +57,11 @@ void hubbard_tests() {
   assert((HubbardOperators::c_down()
 	  * HubbardOperators::c_down()).norm()< tol);
 }
+
+void run_tests() {
+  std::cout << "Running tests" << std::endl;
+  superoperator_test(10);
+  hubbard_tests();
+  function_tests();
+  std::cout << "Done" << std::endl;
+}

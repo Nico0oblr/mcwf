@@ -267,50 +267,38 @@ std::vector<mat_t> operator_vector(const mat_t & op,
   return matrices;
 }
 
-std::vector<mat_t> pauli_x_vector(int sites) {
-  std::vector<mat_t> x_matrices;
+mat_t sum_operator(const mat_t & op,
+		   int sites) {
+  assert(op.cols() == op.rows());
+  int dimension = std::pow(op.cols(), sites);
+  mat_t total = mat_t::Zero(dimension, dimension);
+
   for (int i = 0; i < sites; ++i) {
-    x_matrices.push_back(nth_subsystem(pauli_x(), i, sites));
+    total += nth_subsystem(op, i, sites);
   }
-  return x_matrices;
+  return total;
+}
+
+std::vector<mat_t> pauli_x_vector(int sites) {
+  return operator_vector(pauli_x(), sites);
 }
 
 std::vector<mat_t> pauli_y_vector(int sites) {
-  std::vector<mat_t> y_matrices;
-  for (int i = 0; i < sites; ++i) {
-    y_matrices.push_back(nth_subsystem(pauli_y(), i, sites));
-  }
-  return y_matrices;
+  return operator_vector(pauli_y(), sites);
 }
 
 std::vector<mat_t> pauli_z_vector(int sites) {
-  std::vector<mat_t> z_matrices;
-  for (int i = 0; i < sites; ++i) {
-    z_matrices.push_back(nth_subsystem(pauli_z(), i, sites));
-  }
-  return z_matrices;
+  return operator_vector(pauli_z(), sites);
 }
 
 mat_t pauli_z_total(int sites) {
-  std::vector<mat_t> z_vec = pauli_z_vector(sites);
-  mat_t tot = z_vec[0];
-  for (int i = 1; i < z_vec.size(); ++i) {
-    tot += z_vec[i];
-  }
-
-  return tot;
+  return sum_operator(pauli_z(), sites);
 }
 
 mat_t pauli_squared_total(int sites) {
-  std::vector<mat_t> x_vec = pauli_x_vector(sites);
-  std::vector<mat_t> y_vec = pauli_y_vector(sites);
-  std::vector<mat_t> z_vec = pauli_z_vector(sites);
-  mat_t tot = z_vec[0];
-  for (int i = 1; i < z_vec.size(); ++i) {
-    tot += x_vec[i] * x_vec[i] + y_vec[i] * y_vec[i] + z_vec[i] * z_vec[i];
-  }
-
-  return tot;
+  return sum_operator(pauli_x() * pauli_x()
+		      + pauli_y() * pauli_y()
+		      + pauli_z() * pauli_z(), sites);
 }
 
 mat_t HeisenbergChain(int sites,
@@ -341,5 +329,5 @@ mat_t HeisenbergChain(int sites,
   }
 
   // ham += ham.adjoint().eval();
-  return ham; //  - 0.5 * static_cast<double>(sites) * mat_t::Identity(ham.cols(), ham.rows());
+  return ham - mat_t::Identity(ham.cols(), ham.rows());
 }

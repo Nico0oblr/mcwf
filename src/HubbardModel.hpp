@@ -19,6 +19,11 @@ namespace HubbardOperators {
   mat_t n_up();  
 }
 
+mat_t Hubbard_hamiltonian(int sites,
+			  double hopping,
+			  double hubbardU,
+			  bool periodic);
+
 /*
   Define Peierls substitution hubbard model hamiltonian.
 */

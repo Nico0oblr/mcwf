@@ -1,6 +1,8 @@
 #ifndef COMMON_HPP
 #define COMMON_HPP
 
+#define EIGEN_DONT_PARALLELIZE
+#define EIGEN_SPARSEMATRIX_PLUGIN "SparseAddons.h"
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/KroneckerProduct>
@@ -13,6 +15,7 @@ using scalar_t = std::complex<double>;
 using vec_t = Eigen::Matrix<scalar_t, Eigen::Dynamic, 1>;
 using mat_t = Eigen::Matrix<scalar_t, Eigen::Dynamic, Eigen::Dynamic>;
 using spmat_t = Eigen::SparseMatrix<scalar_t>;
+using calc_mat_t = mat_t;
 /*Mersenne twister random engine*/
 static std::mt19937 mt_rand(110794);
 static std::uniform_real_distribution<double> dis(0.0, 1.0);
@@ -25,24 +28,42 @@ spmat_t cI(Eigen::Index n, std::complex<double> value);
   Calculate op\tensor\identity
   with dimension sub_dim of identity
  */
-mat_t tensor_identity(const mat_t & op, int sub_dim);
+template<typename matrix_type>
+matrix_type tensor_identity(const matrix_type & op, int sub_dim) {
+  matrix_type id = matrix_type::Identity(sub_dim, sub_dim);
+  return Eigen::kroneckerProduct(op, id);
+}
 
 /*
   Calculate \identity\tensor op
   with dimension sub_dim of identity
 */
-mat_t tensor_identity_LHS(const mat_t & op, int sub_dim);
+template<typename matrix_type>
+matrix_type tensor_identity_LHS(const matrix_type & op, int sub_dim) {
+  matrix_type id = matrix_type::Identity(sub_dim, sub_dim);
+  return Eigen::kroneckerProduct(id, op);
+}
 
 /*
   Double the matrix dimension with diagonal blocks
   being mat.
 */
-mat_t double_matrix(const mat_t & mat);
+template<typename matrix_type>
+matrix_type double_matrix(const matrix_type & mat) {
+  return Eigen::kroneckerProduct(matrix_type::Identity(2, 2), mat);
+}
 
 /*
   Double matrix dimension of vector of matrices
 */
-std::vector<mat_t> double_matrix(const std::vector<mat_t> & mats);
+template<typename matrix_type>
+std::vector<matrix_type> double_matrix(const std::vector<matrix_type> & mats) {
+  std::vector<matrix_type> out;
+  for (const matrix_type & mat : mats) {
+    out.push_back(double_matrix(mat));
+  }
+  return out;
+}
 
 /*
   Add two vectors vec1 and vec2 by stacking them on top of each other
@@ -142,5 +163,33 @@ int minus_one_power(int n);
   Defines poission with mean N at n.
 */
 double poisson(double N, int n);
+
+double expval(const mat_t & observable, const vec_t & state);
+
+template<typename matrix_type>
+matrix_type matrix_exponential_taylor(const matrix_type & matrix, int order) {
+  matrix_type mat_n = cI(matrix.rows(), 1.0);
+  matrix_type result = cI(matrix.rows(), 0.0);
+
+  for (int i = 0; i <= order; ++i) {
+    result += mat_n / factorial(i);
+    mat_n = mat_n * matrix;
+  }
+  return result;
+}
+
+template<typename matrix_type>
+vec_t apply_matrix_exponential_taylor(const matrix_type & matrix,
+				      const vec_t & vec,
+				      int order) {
+  vec_t result = vec;
+  vec_t vec_c = vec;
+  
+  for (int i = 1; i <= order; ++i) {
+    vec_c = matrix * vec_c;
+    result += vec_c / factorial(i);
+  }
+  return result;
+}
 
 #endif /* COMMON_HPP */

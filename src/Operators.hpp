@@ -129,6 +129,12 @@ std::vector<mat_t> operator_vector(const mat_t & op,
 				   int sites);
 
 /*
+  Sums the action of the operator op on every site
+*/
+mat_t sum_operator(const mat_t & op,
+		   int sites);
+
+/*
   Pauli x matrix for a single spin for z-axis quantized.
 */
 mat_t pauli_x();

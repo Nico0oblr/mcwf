@@ -4,24 +4,54 @@
 #include "Lindbladian.hpp"
 #include "Operators.hpp"
 
-Eigen::VectorXd direct_closed_observable(const mat_t & system,
+Eigen::VectorXd direct_closed_observable(Hamiltonian<calc_mat_t> & system,
 					 const vec_t & cstate,
 					 double time, double dt,
-					 const spmat_t & observable) {
+					 const calc_mat_t & observable) {
   vec_t state = cstate;
-  spmat_t propagator = matrix_exponential(-1.0i * system * dt).sparseView();
-  std::cout << "hermitian? " << (system - system.adjoint()).norm() << std::endl;
   int time_steps = static_cast<int>(time / dt);
   Eigen::VectorXd n_ensemble = Eigen::VectorXd::Zero(time_steps);
-
+  std::cout << "initial: " << expval(observable, state) << std::endl;
+  
   double t = 0;
   for (int j = 0; j < time_steps; ++j, t += dt) {
-    state = propagator * state;
+    std::cout << "j: " << j << std::endl;
+    // mat_t propagator = system(t, dt);
+    state = system.propagate(t, dt, state);
+    // Just in case. Numerical errors increase norm when using many time steps.
     state /= state.norm();
-    n_ensemble(j) = ((state.adjoint() * observable * state).real())(0);
-    
-    std::cout << "n_ensemble(j): " << n_ensemble(j) << std::endl;
+    n_ensemble(j) = expval(observable, state);
   }
+  
+  return n_ensemble;
+}
 
+Eigen::VectorXd
+direct_closed_two_time_correlation(Hamiltonian<calc_mat_t> & system,
+				   const vec_t & cstate,
+				   double t0, double t1,
+				   double dt,
+				   const calc_mat_t & A,
+				   const calc_mat_t & B) {
+  vec_t state = cstate;
+  int time_steps0 = static_cast<int>(t0 / dt);
+  int time_steps1 = static_cast<int>((t1 - t0) / dt);
+
+  double t = 0;
+  Eigen::VectorXd n_ensemble = Eigen::VectorXd::Zero(time_steps1);
+  for (int j = 0; j < time_steps0; ++j, t += dt) {
+    state = system.propagate(t, dt, state);
+    state /= state.norm();
+  }
+  vec_t Bstate = B * state;
+  double current_norm = Bstate.norm();
+  
+  for (int j = 0; j < time_steps1; ++j, t += dt) {
+    Bstate = system.propagate(t, dt, Bstate);
+    state = system.propagate(t, dt, state);
+    state /= state.norm();
+    Bstate *= (current_norm / Bstate.norm());
+    n_ensemble(j) = state.dot(A * Bstate).real();
+  }
   return n_ensemble;
 }

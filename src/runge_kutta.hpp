@@ -10,16 +10,18 @@ class RungeKuttaSolver {
 public:
   template<typename value_type>
   value_type
-  perform_step(double dt,
+  perform_step(double t,
+	       double dt,
 	       const value_type & y,
-	       const std::function<value_type(const value_type &)> & func) {
+	       const std::function<value_type(double,
+					      const value_type &)> & func) {
     std::vector<value_type> ks;
     for (int i = 0; i + 1 < m_butcher_tableau.cols(); ++i) {
       value_type argument = y;
       for (int j = 1; j < i; ++j) {
 	argument += dt * m_butcher_tableau(i, j) * ks[j];
       }
-      ks.push_back(func(argument));
+      ks.push_back(func(t + dt * m_butcher_tableau(i, 0), argument));
     }
 
     value_type result = y;

@@ -1,15 +1,5 @@
 #include "Common.hpp"
 
-mat_t tensor_identity(const mat_t & op, int sub_dim) {
-  mat_t id = mat_t::Identity(sub_dim, sub_dim);
-  return Eigen::kroneckerProduct(op, id);
-}
-
-mat_t tensor_identity_LHS(const mat_t & op, int sub_dim) {
-  mat_t id = mat_t::Identity(sub_dim, sub_dim);
-  return Eigen::kroneckerProduct(id, op);
-}
-
 mat_t matrix_exponential(const mat_t & matrix) {
   Eigen::ComplexEigenSolver<mat_t> solver(matrix, true);
   mat_t V = solver.eigenvectors();
@@ -17,21 +7,6 @@ mat_t matrix_exponential(const mat_t & matrix) {
   Eigen::PartialPivLU<mat_t> inverter(V);
   mat_t V_inv = inverter.inverse();
   return V * expD * V_inv;
-}
-
-mat_t double_matrix(const mat_t & mat) {
-  mat_t out = mat_t::Zero(2 * mat.rows(), 2 * mat.cols());
-  out.block(0, 0, mat.rows(), mat.cols()) = mat;
-  out.block(mat.rows(), mat.cols(), mat.rows(), mat.cols()) = mat;
-  return out;
-}
-
-std::vector<mat_t> double_matrix(const std::vector<mat_t> & mats) {
-  std::vector<mat_t> out;
-  for (const mat_t & mat : mats) {
-    out.push_back(double_matrix(mat));
-  }
-  return out;
 }
 
 vec_t add_vectors(const vec_t & vec1, const vec_t & vec2) {
@@ -46,7 +21,7 @@ mat_t superoperator_left(const mat_t & op, int dimension) {
 }
 
 mat_t superoperator_right(const mat_t & op, int dimension) {
-  return tensor_identity_LHS(op.transpose(), dimension);
+  return tensor_identity_LHS<mat_t>(op.transpose(), dimension);
 }
 
 vec_t unstack_matrix(const mat_t & mat) {
@@ -132,6 +107,10 @@ spmat_t matrix_exponential_taylor(const spmat_t & matrix) {
 }
 
 mat_t matrix_exponential_taylor(const mat_t & matrix) {
-  return mat_t::Identity(matrix.cols(), matrix.rows())
-    + matrix + 0.5 * matrix * matrix;
+  return mat_t::Identity(matrix.cols(), matrix.rows()) + matrix + 0.5 * matrix * matrix;
+}
+
+
+double expval(const mat_t & observable, const vec_t & state) {
+  return state.dot(observable * state).real();
 }
