@@ -12,6 +12,7 @@
 #include "Hamiltonian.hpp"
 #include "LightMatterSystem.hpp"
 #include "Recorders.hpp"
+#include "HSpaceDistribution.hpp"
 
 #include "toy_spin_model.hpp"
 #include "HubbardModel.hpp"
@@ -65,6 +66,7 @@ PYBIND11_MODULE(mcwf, m) {
       (m, "TimeIndependentHamiltonian")
       .def(py::init<const calc_mat_t &>())
       .def(py::init<const calc_mat_t &, const calc_mat_t &, int>())
+      .def("add", &TimeIndependentHamiltonian<calc_mat_t>::add)
       .def("propagate", &TimeIndependentHamiltonian<calc_mat_t>::propagate)
       .def("propagator", &TimeIndependentHamiltonian<calc_mat_t>::propagator)
       .def("__call__", &TimeIndependentHamiltonian<calc_mat_t>::operator());
@@ -73,6 +75,7 @@ PYBIND11_MODULE(mcwf, m) {
       (m, "TimeDependentHamiltonian")
       .def(py::init<const std::function<calc_mat_t(double)> &, int>())
       .def(py::init<const TimeIndependentHamiltonian<calc_mat_t> &>())
+      .def("add", &TimeDependentHamiltonian<calc_mat_t>::add)
       .def("propagate", &TimeDependentHamiltonian<calc_mat_t>::propagate)
       .def("propagator", &TimeDependentHamiltonian<calc_mat_t>::propagator)
       .def("__call__", &TimeDependentHamiltonian<calc_mat_t>::operator());
@@ -173,6 +176,16 @@ PYBIND11_MODULE(mcwf, m) {
 	  -> spmat_t {return double_matrix(op);});
     m.def("double_matrix", [](const Eigen::Ref<const mat_t> & op)
 	  -> mat_t {return double_matrix(op);});
+
+    /*HSpaceDistribution*/
+    py::class_<HSpaceDistribution>(m, "HSpaceDistribution")
+      .def("draw", &HSpaceDistribution::draw)
+      .def(py::init<const std::vector<double> &, const std::vector<vec_t> &>())
+      .def(py::init<const std::vector<double> &,
+	   const std::vector<int> &, int>())
+      .def(py::init<int>())
+      .def(py::self += py::self);
+    m.def("coherent_photon_state", &coherent_photon_state);
 }
 /*
 .def("__mul__", [](const Vector2 &a, float b) {
