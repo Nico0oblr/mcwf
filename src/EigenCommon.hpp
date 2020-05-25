@@ -24,7 +24,7 @@ using mat_t = Eigen::Matrix<scalar_t, Eigen::Dynamic, Eigen::Dynamic>;
 using diag_mat_t = Eigen::DiagonalMatrix<scalar_t, Eigen::Dynamic,
 					 Eigen::Dynamic>;
 using spmat_t = Eigen::SparseMatrix<scalar_t>;
-using calc_mat_t = spmat_t;
+using calc_mat_t = mat_t;
 
 
 /*
@@ -179,14 +179,12 @@ double sparsity(const Eigen::SparseMatrixBase<Derived> & mat) {
 /*
   Performs matrix exponential via diagonalization of matrix
 */
-template<typename Derived>
-auto matrix_exponential(const Eigen::MatrixBase<Derived> & matrix) {
-  Eigen::ComplexEigenSolver<Derived> solver(matrix, true);
-  typename Derived::PlainObject V = solver.eigenvectors();
-  typename Derived::PlainObject expD =
-    solver.eigenvalues().array().exp().matrix().asDiagonal();
-  Eigen::PartialPivLU<typename Derived::PlainObject> inverter(V);
-  typename Derived::PlainObject V_inv = inverter.inverse();
+inline mat_t matrix_exponential(const mat_t & mat) {
+  Eigen::ComplexEigenSolver<mat_t> solver(mat, true);
+  mat_t V = solver.eigenvectors();
+  mat_t expD = solver.eigenvalues().array().exp().matrix().asDiagonal();
+  Eigen::PartialPivLU<mat_t> inverter(V);
+  mat_t V_inv = inverter.inverse();
   return V * expD * V_inv;
 }
 

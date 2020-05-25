@@ -63,6 +63,10 @@ std::unique_ptr<Hamiltonian<calc_mat_t>> Lindbladian::hamiltonian() const {
   return hamiltonian_copy;
 }
 
+Hamiltonian<calc_mat_t> & Lindbladian::system_hamiltonian() {
+  return *m_system_hamiltonian;
+}
+
 void Lindbladian::add_subsystem(const calc_mat_t sub_hamiltonian) {
   int sub_dim = sub_hamiltonian.cols() / m_system_hamiltonian->dimension();
   for (size_type i = 0; i < m_lindblad_operators.size(); ++i) {

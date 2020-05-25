@@ -11,14 +11,19 @@
 #include "EigenCommon.hpp"
 #include "Hamiltonian.hpp"
 #include "LightMatterSystem.hpp"
-#include "HubbardModel.hpp"
 #include "Recorders.hpp"
+
+#include "toy_spin_model.hpp"
+#include "HubbardModel.hpp"
 
 // Solvers
 #include "direct_closed_solver.hpp"
 #include "direct_solver.hpp"
 #include "mcwf_functions.hpp"
 #include "runge_kutta_solver.hpp"
+
+// Temporary
+#include "tests.hpp"
 
 namespace py = pybind11;
 
@@ -84,6 +89,8 @@ PYBIND11_MODULE(mcwf, m) {
     py::class_<Lindbladian>
       (m, "Linbladian")
       .def("hamiltonian", &Lindbladian::hamiltonian)
+      .def("system_hamiltonian", &Lindbladian::system_hamiltonian,
+	   py::return_value_policy::reference_internal)
       .def("add_subsystem", &Lindbladian::add_subsystem)
       .def("__call__", &Lindbladian::operator())
       .def("superoperator", &Lindbladian::superoperator)
@@ -144,6 +151,28 @@ PYBIND11_MODULE(mcwf, m) {
       .def("density_matrices", &DirectStateRecorder::density_matrices);
     py::class_<DirectDmatRecorder>(m, "DirectDmatRecorder")
       .def("density_matrices", &DirectDmatRecorder::density_matrices);
+
+    // Test binding
+    m.def("run_tests", &run_tests);
+
+    /*toy_spin_model.hpp*/
+    m.def("J0_n", &J0_n);
+    m.def("toy_modelize", &toy_modelize);
+    
+    /*EigenCommon*/
+    m.def("tensor_identity", [](const spmat_t & op, int dim)
+	  -> spmat_t {return tensor_identity(op, dim);});
+    m.def("tensor_identity", [](const Eigen::Ref<const mat_t> & op, int dim)
+	  -> mat_t {return tensor_identity(op, dim);});
+    m.def("tensor_identity_LHS", [](const spmat_t & op, int dim)
+	  -> spmat_t {return tensor_identity_LHS(op, dim);});
+    m.def("tensor_identity_LHS", [](const Eigen::Ref<const mat_t> & op, int dim)
+	  -> mat_t {return tensor_identity_LHS(op, dim);});
+    
+    m.def("double_matrix", [](const spmat_t & op)
+	  -> spmat_t {return double_matrix(op);});
+    m.def("double_matrix", [](const Eigen::Ref<const mat_t> & op)
+	  -> mat_t {return double_matrix(op);});
 }
 /*
 .def("__mul__", [](const Vector2 &a, float b) {

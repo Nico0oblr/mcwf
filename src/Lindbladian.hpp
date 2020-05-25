@@ -42,6 +42,8 @@ struct Lindbladian {
 
   std::unique_ptr<Hamiltonian<calc_mat_t>> hamiltonian() const;
 
+  Hamiltonian<calc_mat_t> & system_hamiltonian();
+
   void add_subsystem(const calc_mat_t sub_hamiltonian);
 
   void calculate_nh_term();

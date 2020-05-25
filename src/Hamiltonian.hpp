@@ -63,7 +63,7 @@ public:
   MatrixType propagator(double /*time*/, double dt) override {
     if ((m_propagator.size() == m_hamiltonian.size())
 	|| (std::abs(m_last_dt - dt) > tol)) {
-      m_propagator = MatrixType(matrix_exponential(-1.0 * m_hamiltonian * dt));
+      m_propagator = matrix_exponential_taylor(-1.0 * m_hamiltonian * dt, 4);
     }
     return m_propagator;
   }

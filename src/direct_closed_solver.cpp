@@ -18,7 +18,7 @@ void direct_closed_observable(Hamiltonian<calc_mat_t> & system,
     // mat_t propagator = system(t, dt);
     state = system.propagate(t, dt, state);
     // Just in case. Numerical errors increase norm when using many time steps.
-    state /= state.norm();
+    // state /= state.norm();
     // n_ensemble(j) = expval(observable, state);
     recorder.record(state);
   }
