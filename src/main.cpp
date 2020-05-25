@@ -1,5 +1,6 @@
 #include <fstream>
 #include <omp.h>
+#include <chrono>
 
 #include "argparse.hpp"
 #include "Common.hpp"
@@ -18,7 +19,6 @@
 #include "Hamiltonian.hpp"
 #include "Recorders.hpp"
 #include "LightMatterSystem.hpp"
-#include <chrono>
 
 int main(int argc, char ** argv) {
   run_tests();
@@ -40,8 +40,7 @@ int main(int argc, char ** argv) {
   std::string method = parser.parse<std::string>("method");
   double time1 = parser.parse<double>("time1");
   if (method == "mcwf_correlation") {
-    n_averaged = two_time_correlation(lms.system,
-				      state_distro,
+    n_averaged = two_time_correlation(lms.system, state_distro,
 				      time1, time, dt,
 				      runs, observable,
 				      observable).colwise().mean();
@@ -52,7 +51,7 @@ int main(int argc, char ** argv) {
 					     observable,
 					     observable);
   } else if (method == "direct_closed_correlation") {
-    n_averaged = direct_closed_two_time_correlation(*lms.system.m_system_hamiltonian,
+    n_averaged = direct_closed_two_time_correlation(lms.hamiltonian(),
 						    state_distro.draw(),
 						    time1, time, dt, observable,
 						    observable);

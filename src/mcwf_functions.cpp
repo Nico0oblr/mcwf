@@ -78,7 +78,6 @@ Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
   auto hamiltonian = system.hamiltonian();
   auto doubled_hamiltonian = doubled_system.hamiltonian();
   int time_steps = static_cast<int>((t2 - t1) / dt);
-
   Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
   for (int i = 0; i < runs; ++i) {
     vec_t state = state_distro.draw();
@@ -91,7 +90,8 @@ Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
     double norm = doubled_state.norm() / state.norm();
     doubled_state /= norm;
     for (int j = 0; j < time_steps; ++j, t += dt) {
-      perform_time_step(system, *doubled_hamiltonian, t, dt, doubled_state);
+      perform_time_step(doubled_system, *doubled_hamiltonian,
+			t, dt, doubled_state);
       double correlation = ((doubled_state.head(sub_dim).adjoint() * A1
 			     * doubled_state.tail(sub_dim)
 			     / doubled_state.squaredNorm()

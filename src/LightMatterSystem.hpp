@@ -18,6 +18,14 @@ struct LightMatterSystem {
   int elec_dim() const {
     return projector.rows();
   }
+
+  const Hamiltonian<calc_mat_t> & hamiltonian() const {
+    return *(system.m_system_hamiltonian);
+  }
+
+  Hamiltonian<calc_mat_t> & hamiltonian() {
+    return *(system.m_system_hamiltonian);
+  }
 };
 
 LightMatterSystem parse_system(YamlOrCMD & parser);

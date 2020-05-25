@@ -34,7 +34,7 @@ Lindbladian drivenCavity(double n_b,
   return Lindbladian(TimeDependentHamiltonian<calc_mat_t>
 		     (DrivenCavityHamiltonian(frequency, laser_frequency,
 					      amplitude, dimension, elec_dim),
-		      dimension),
+		      dimension * elec_dim),
 		     {A, A_t}, ampl);
 }
 

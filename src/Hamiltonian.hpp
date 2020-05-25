@@ -5,6 +5,10 @@
 #include "Operators.hpp"
 #include <memory>
 
+/*
+  TODO: Take care of dimensionality
+*/
+
 inline spmat_t KroneckerProduct(const spmat_t & A, const spmat_t & B) {
   return Eigen::kroneckerProduct(mat_t(A), mat_t(B)).sparseView();
 }
@@ -268,9 +272,11 @@ public:
     if(this_rhs) {
       m_hamiltonian = [f1, mat](double time)
 		      {return KroneckerProduct(mat, f1(time));};
+      m_dimension *= mat.rows();
     } else {
       m_hamiltonian = [f1, mat](double time)
 		      {return KroneckerProduct(f1(time), mat);};
+      m_dimension *= mat.rows();
     }
   }
 
