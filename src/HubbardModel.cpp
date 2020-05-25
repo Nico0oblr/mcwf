@@ -91,6 +91,15 @@ mat_t Hubbard_hamiltonian(int sites,
     + hubbardU * onsite_terms;
 }
 
+std::pair<int, int> get_spin_sector(const vec_t & state) {
+  int sites = state.size() / 4;
+  assert(state.size() == sites * 4);
+  mat_t n_up_total = sum_operator(HubbardOperators::n_up(), sites);
+  mat_t n_down_total = sum_operator(HubbardOperators::n_down(), sites);
+  return std::make_pair(static_cast<int>(expval(n_up_total, state) + 0.5),
+			static_cast<int>(expval(n_down_total, state) + 0.5));
+}
+
 mat_t Hubbard_light_matter(int photon_dimension,
 			   int sites,
 			   double coupling,

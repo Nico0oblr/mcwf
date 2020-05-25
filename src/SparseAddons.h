@@ -13,7 +13,7 @@ static SparseMatrix<_Scalar, _Options, _StorageIndex> Identity(Index rows,
 }
 
 static SparseMatrix<_Scalar, _Options, _StorageIndex> Zero(Index rows,
-							       Index cols) {
+							   Index cols) {
   SparseMatrix<_Scalar, _Options, _StorageIndex> mat(rows, cols);
   return mat;
 }

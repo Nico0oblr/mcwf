@@ -1,11 +1,17 @@
 #ifndef SPARSEBASEADDONS_HPP
 #define SPARSEBASEADDONS_HPP
 
-Scalar trace() const {
-  Scalar sum(0);
-  for (int k = 0; k < outerSize(); ++k)
-    sum += coeff(k,k);
-  return sum;
+/*static SparseMatrix<Scalar, Options, StorageIndex> Identity(Index rows,
+							    Index cols) {
+  SparseMatrix<Scalar, Options, StorageIndex> mat(rows, cols);
+  mat.setIdentity();
+  return mat;
 }
+
+static SparseMatrix<Scalar, Options, StorageIndex> Zero(Index rows,
+							Index cols) {
+  SparseMatrix<Scalar, Options, StorageIndex> mat(rows, cols);
+  return mat;
+  }*/
 
 #endif /* SPARSEBASEADDONS_HPP */

@@ -34,6 +34,11 @@ mat_t Hubbard_light_matter(int photon_dimension,
 			   double hubbardU,
 			   bool periodic);
 
+/*
+  Get the spin sector of a Hubbard state
+*/
+std::pair<int, int> get_spin_sector(const vec_t & state);
+
 HSpaceDistribution HubbardNeelState(int sites, const mat_t & projection);
 
 mat_t HubbardProjector(int sites, int total_spins_up, int total_spins_down);

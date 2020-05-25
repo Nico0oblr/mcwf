@@ -5,7 +5,6 @@
 
 LightMatterSystem parse_system(YamlOrCMD & parser) {
   int dimension = parser.parse<int>("dimension");
-  PrecomputedOperators.precompute(dimension);
   int sites = parser.parse<int>("sites");
   double temperature = parser.parse<double>("temperature");
   double coupling = parser.parse<double>("coupling");
@@ -69,27 +68,27 @@ mat_t parse_observable(const LightMatterSystem & lms,
   } else if (observable_name == "photon_position") {
     mat_t A = annihilationOperator(lms.dimension);
     mat_t A_t = creationOperator(lms.dimension);
-    return tensor_identity<mat_t>(A + A_t, lms.elec_dim());
+    return tensor_identity(A + A_t, lms.elec_dim());
   } else if (observable_name == "spin_energy") {
     return lms.light_matter;
   } else if (observable_name == "total_spin") {
-    return tensor_identity_LHS<mat_t>(0.5 * pauli_z_total(lms.sites), lms.dimension);
+    return tensor_identity_LHS(0.5 * pauli_z_total(lms.sites), lms.dimension);
   } else if (observable_name == "total_spin_squared") {
-    return tensor_identity_LHS<mat_t>(0.25 * pauli_squared_total(lms.sites), lms.dimension);
+    return tensor_identity_LHS(0.25 * pauli_squared_total(lms.sites), lms.dimension);
   } else if ((observable_name == "single_spin") && (lms.model == "hubbard")) {
-    return tensor_identity_LHS<mat_t>
+    return tensor_identity_LHS
       (lms.projector * nth_subsystem(HubbardOperators::n_up()
 				     - HubbardOperators::n_down(), 0, lms.sites)
        * lms.projector.adjoint() , lms.dimension);
   } else if (observable_name == "doublet" && lms.model == "hubbard") {
-    return tensor_identity_LHS<mat_t>
+    return tensor_identity_LHS
       (lms.projector * nth_subsystem(HubbardOperators::n_up()
 				     * HubbardOperators::n_down(), 0, lms.sites)
        * lms.projector.adjoint(), lms.dimension);
   } else if ((observable_name == "single_spin")
 	     && ((lms.model == "heisenberg") || (lms.model == "toy_spin"))) {
-    return tensor_identity_LHS<mat_t>(0.5 * pauli_z_vector(lms.sites)[0],
-					    lms.dimension);
+    return tensor_identity_LHS(0.5 * pauli_z_vector(lms.sites)[0],
+			       lms.dimension);
   } else if (observable_name == "alternating_spin") {
     std::vector<mat_t> z_vec = pauli_z_vector(lms.sites);
     double sign = 1.0;

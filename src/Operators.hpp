@@ -124,7 +124,7 @@ mat_t nth_subsystem(const mat_t & op,
 /*
   Creates a vector, where the ith element only acts on the ith site
  */
-std::vector<mat_t> operator_vector(const mat_t & op,
+std::vector<mat_t> operator_vector(const Eigen::Ref<const mat_t> & op,
 				   int sites);
 
 /*

@@ -7,6 +7,12 @@
 void superoperator_test(int dimension) {
   mat_t vec = Eigen::MatrixXd::Random(dimension, dimension);
   mat_t op = Eigen::MatrixXd::Random(dimension, dimension);
+  
+  mat_t test1 = superoperator_left(op, dimension);
+  print_matrix_dim(test1);
+  print_matrix_dim(unstack_matrix(vec));
+
+
   mat_t result_lhs1 = restack_vector(superoperator_left(op, dimension) * unstack_matrix(vec), dimension);
   mat_t result_lhs2 = op * vec;
   mat_t result_rhs1 = restack_vector(superoperator_right(op, dimension) * unstack_matrix(vec), dimension);

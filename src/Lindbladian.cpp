@@ -105,19 +105,20 @@ std::unique_ptr<Hamiltonian<calc_mat_t>> Lindbladian::superoperator() const {
   struct SuperOperatorStruct {
 
     calc_mat_t operator()(double time) const {
-      calc_mat_t out = - 1.0i * (superoperator_left((*system_hamiltonian)(time),
-						 dimension).sparseView()
-			      - superoperator_right((*system_hamiltonian)(time),
-						    dimension).sparseView());
+      calc_mat_t lhs = superoperator_left((*system_hamiltonian)(time),
+					  dimension);
+      calc_mat_t rhs = superoperator_right((*system_hamiltonian)(time),
+					   dimension);
+      calc_mat_t out = - 1.0i * (lhs - rhs);
       for (size_type i = 0; i < lindblad_operators.size(); ++i) {
-	mat_t adj_op = lindblad_operators[i].adjoint();
+	calc_mat_t adj_op = lindblad_operators[i].adjoint();
 	calc_mat_t mat1 = superoperator_left(lindblad_operators[i],
-					  dimension).sparseView();
-	calc_mat_t mat2 = superoperator_right(adj_op, dimension).sparseView();
+					  dimension);
+	calc_mat_t mat2 = superoperator_right(adj_op, dimension);
 	calc_mat_t mat3 = superoperator_left(adj_op * lindblad_operators[i],
-					  dimension).sparseView();
+					  dimension);
 	calc_mat_t mat4 = superoperator_right(adj_op * lindblad_operators[i],
-					   dimension).sparseView();
+					   dimension);
 	out += lindblad_amplitudes[i] * (mat1 * mat2 - 0.5 * mat3 - 0.5 * mat4);
       }
       return 1.0i * out;

@@ -1,9 +1,9 @@
 #include "Operators.hpp"
 
 void PrecomputedOperators_str::precompute(int dimension) {
-  spmat_t A_m = cI(dimension, 1.0);
-  spmat_t A_t_m = cI(dimension, 1.0);
-  spmat_t n_m = cI(dimension, 1.0);
+  spmat_t A_m = spmat_t::Identity(dimension, dimension);
+  spmat_t A_t_m = spmat_t::Identity(dimension, dimension);
+  spmat_t n_m = spmat_t::Identity(dimension, dimension);
   
   spmat_t A = annihilationOperator_sp(dimension);
   spmat_t A_t = creationOperator_sp(dimension);
@@ -65,7 +65,7 @@ mat_t annihilationOperator(int dimension) {
 }
 
 mat_t numberOperator(int dimension) {
-  mat_t op = mat_t::Zero(dimension, dimension);
+ mat_t op = mat_t::Zero(dimension, dimension);
   for (Eigen::Index i = 0; i < dimension; ++i) {
     op(i, i) = i;
   }
@@ -181,7 +181,8 @@ spmat_t exchange_interaction_full(int dimension,
 				  double hopping,
 				  double frequency,
 				  double coupling,
-				  int order) {  
+				  int order) {
+  PrecomputedOperators.precompute(dimension);
   double wbar = frequency / hubbardU;
   double J_ex = 4.0 * hopping * hopping / hubbardU;
   spmat_t J0 = exchange_interaction_term(0, coupling, wbar, dimension);
@@ -255,7 +256,7 @@ mat_t pauli_z() {
   return out;
 }
 
-std::vector<mat_t> operator_vector(const mat_t & op,
+std::vector<mat_t> operator_vector(const Eigen::Ref<const mat_t> & op,
 				   int sites) {
   std::vector<mat_t> matrices;
   matrices.reserve(sites);
