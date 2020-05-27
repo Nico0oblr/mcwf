@@ -1,6 +1,20 @@
 #include "Lindbladian.hpp"
 #include "Operators.hpp"
 
+calc_mat_t lindblad_term(const std::vector<calc_mat_t> & lindblad_operators,
+			 const std::vector<scalar_t> & lindblad_amplitudes) {
+  calc_mat_t nh_term;
+  if (lindblad_operators.size() > 0) {
+    nh_term = lindblad_operators[0].adjoint() * lindblad_operators[0]
+      * lindblad_amplitudes[0];
+    for (size_type i = 1; i < lindblad_operators.size(); ++i) {
+      nh_term += lindblad_operators[i].adjoint() * lindblad_operators[i]
+	* lindblad_amplitudes[i];
+    }
+  }
+  return nh_term;
+}
+
 scalar_t bose_distribution(double temperature,
 			   double frequency) {
   return 1.0 / ( std::exp(temperature * frequency) - 1.0);
@@ -79,14 +93,8 @@ void Lindbladian::add_subsystem(const calc_mat_t sub_hamiltonian) {
 }
 
 void Lindbladian::calculate_nh_term() {
-  if (m_lindblad_operators.size() > 0) {
-    m_nh_term = m_lindblad_operators[0].adjoint() * m_lindblad_operators[0]
-      * m_lindblad_amplitudes[0];
-    for (size_type i = 1; i < m_lindblad_operators.size(); ++i) {
-      m_nh_term += m_lindblad_operators[i].adjoint() * m_lindblad_operators[i]
-	* m_lindblad_amplitudes[i];
-    }
-  }
+  m_nh_term = lindblad_term(m_lindblad_operators, m_lindblad_amplitudes);
+  
 }
 
 calc_mat_t Lindbladian::operator()(double time, const calc_mat_t & density_matrix) const {
@@ -180,3 +188,7 @@ Lindbladian::Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian,
   calculate_nh_term();
   std::cout << gamma << std::endl;
 }
+
+
+Lindbladian::Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian)
+  :m_system_hamiltonian(system_hamiltonian.clone()) {}

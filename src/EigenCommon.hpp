@@ -42,9 +42,9 @@ void print_matrix_dim(const Eigen::EigenBase<Derived> & mat) {
 template<typename Derived>
 auto tensor_identity(const Eigen::EigenBase<Derived> & op,
 		     int sub_dim) {
-  typename Derived::PlainObject id
-    = Derived::PlainObject::Identity(sub_dim, sub_dim);
-  return Eigen::kroneckerProduct(op.derived(), id);
+  using SparseType = Eigen::SparseMatrix<typename Derived::Scalar>;
+  SparseType id = SparseType::Identity(sub_dim, sub_dim);
+  return Eigen::kroneckerProduct(op.derived(), id).eval();
 }
 
 /*
@@ -54,9 +54,9 @@ auto tensor_identity(const Eigen::EigenBase<Derived> & op,
 template<typename Derived>
 auto tensor_identity_LHS(const Eigen::EigenBase<Derived> & op,
 			 int sub_dim) {
-  typename Derived::PlainObject id
-    = Derived::PlainObject::Identity(sub_dim, sub_dim);
-  return Eigen::kroneckerProduct(id, op.derived());
+  using SparseType = Eigen::SparseMatrix<typename Derived::Scalar>;
+  SparseType id = SparseType::Identity(sub_dim, sub_dim);
+  return Eigen::kroneckerProduct(id, op.derived()).eval();
 }
 
 /*
@@ -112,6 +112,19 @@ vec_t apply_matrix_exponential_taylor(const Eigen::EigenBase<Derived> & matrix,
     result += vec_c / factorial(i);
   }
   return result;
+}
+
+template<typename Derived>
+vec_t apply_matrix_exponential_taylorV2(const Eigen::EigenBase<Derived> & matrix,
+					const vec_t & vec,
+					int order) {
+  typename Derived::PlainObject exp_n = matrix.derived() / static_cast<double>(order);
+  vec_t vec_c = vec;
+  
+  for (int i = 0; i < order; ++i) {
+    vec_c = vec_c + exp_n * vec_c;
+  }
+  return vec_c;
 }
 
 template<typename Derived>
@@ -189,8 +202,16 @@ inline mat_t matrix_exponential(const mat_t & mat) {
 }
 
 template<typename Derived>
-auto matrix_exponential(const Eigen::SparseMatrixBase<Derived> & matrix) {
+auto matrix_exponential_sparse(const Eigen::SparseMatrixBase<Derived> & matrix) {
   return matrix_exponential_taylor(matrix, 4);
 }
+
+
+template<typename A, typename B>
+auto commutator(const Eigen::EigenBase<A> & lhs,
+		const Eigen::EigenBase<B> & rhs) {
+  return lhs.derived() * rhs.derived() - rhs.derived() * lhs.derived();
+}
+
 
 #endif /* EIGENCOMMON_HPP */

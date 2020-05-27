@@ -151,8 +151,6 @@ public:
       }
     }
 
-    std::cout << "mat_dim" << std::endl;
-    print_matrix_dim(mat);
     return mat;
   }
 

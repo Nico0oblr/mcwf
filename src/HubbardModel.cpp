@@ -158,6 +158,13 @@ HSpaceDistribution HubbardNeelState(int sites, const mat_t & projection) {
   return HSpaceDistribution({1.0}, {projection * state});
 }
 
+HSpaceDistribution DimerGroundState(double hopping, double hubbardU) {
+  double factor = - (hubbardU + std::sqrt(16.0 * hopping * hopping + hubbardU * hubbardU)) / (4.0 * hopping);
+  Eigen::Matrix<double, 4, 1> tmp(1, factor, factor, 1);
+  tmp /= tmp.norm();
+  return HSpaceDistribution({1.0}, {tmp});
+}
+
 mat_t HubbardProjector(int sites, int total_spins_up, int total_spins_down) {
   std::cout << "sites: " << sites << std::endl;
   std::cout << "total_spins_up: " << total_spins_up << std::endl;

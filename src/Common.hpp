@@ -4,6 +4,7 @@
 #include <random>
 #include <iostream>
 #include "EigenCommon.hpp"
+#include "Logger.hpp"
 
 /*Some type and constants, that will be used throughout the program*/
 using namespace std::complex_literals;

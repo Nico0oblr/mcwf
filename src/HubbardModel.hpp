@@ -41,4 +41,6 @@ std::pair<int, int> get_spin_sector(const vec_t & state);
 
 HSpaceDistribution HubbardNeelState(int sites, const mat_t & projection);
 
+HSpaceDistribution DimerGroundState(double hopping, double hubbardU);
+
 mat_t HubbardProjector(int sites, int total_spins_up, int total_spins_down);

@@ -28,13 +28,13 @@ void perform_time_step(const Lindbladian & system,
   double norm = state.squaredNorm();
 
   if (!(norm <= 1.0)) {
-    std::cout << "Warning: Norm should be decreasing with time: "
-	      << norm << std::endl;
+    LOG(logWARNING) << "Warning: Norm should be decreasing with time: "
+		    << std::endl;
   }
   
   if ((std::abs(1 - norm)) > 0.05) {
-    std::cout << "Warning: Norm deviation very large: "
-	      << std::abs(1 - norm) << std::endl;
+    LOG(logWARNING) << "Warning: Norm deviation very large: "
+		    << std::abs(1 - norm) << std::endl;
   }
       
   double eta = dis(mt_rand);
@@ -49,7 +49,7 @@ void observable_calc(const Lindbladian & system,
 		     const HSpaceDistribution & state_distro,
 		     double time, double dt, int runs,
 		     MCWFRecorder & recorder) {
-  std::cout << "starting mcwf observable run" << std::endl;
+  LOG(logINFO) << "starting mcwf observable run" << std::endl;
   auto hamiltonian = system.hamiltonian();
   int time_steps = static_cast<int>(time / dt);
 #pragma omp parallel for

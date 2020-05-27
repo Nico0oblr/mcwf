@@ -8,13 +8,13 @@ void direct_closed_observable(Hamiltonian<calc_mat_t> & system,
 			      const vec_t & cstate,
 			      double time, double dt,
 			      RecorderHost<vec_t> & recorder) {
+  LOG(logINFO) << "Running direct closed solver" << std::endl;
   vec_t state = cstate;
   int time_steps = static_cast<int>(time / dt);
   // Eigen::VectorXd n_ensemble = Eigen::VectorXd::Zero(time_steps);
   
   double t = 0;
   for (int j = 0; j < time_steps; ++j, t += dt) {
-    std::cout << "j: " << j << std::endl;
     // mat_t propagator = system(t, dt);
     state = system.propagate(t, dt, state);
     // Just in case. Numerical errors increase norm when using many time steps.

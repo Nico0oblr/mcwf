@@ -8,7 +8,7 @@ void observable_direct(const Lindbladian & system,
 		       const HSpaceDistribution & state_distro,
 		       double time, double dt,
 		       RecorderHost<calc_mat_t> & recorder) {
-  std::cout << "performing direct solution" << std::endl;
+  LOG(logINFO) << "performing direct solution" << std::endl;
   calc_mat_t density_matrix = state_distro.density_matrix();
   int time_steps = static_cast<int>(time / dt);
   int dimension = density_matrix.cols();

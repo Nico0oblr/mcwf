@@ -4,6 +4,9 @@
 #include "Common.hpp"
 #include "Hamiltonian.hpp"
 
+calc_mat_t lindblad_term(const std::vector<calc_mat_t> & lindblad_operators,
+			 const std::vector<scalar_t> & lindblad_amplitudes);
+
 class DrivenCavityHamiltonian {
 public:
   calc_mat_t operator()(double time) const {
@@ -40,7 +43,7 @@ private:
 
 struct Lindbladian {
 
-  std::unique_ptr<Hamiltonian<calc_mat_t>> hamiltonian() const;
+  virtual std::unique_ptr<Hamiltonian<calc_mat_t>> hamiltonian() const;
 
   Hamiltonian<calc_mat_t> & system_hamiltonian();
 
@@ -70,6 +73,9 @@ struct Lindbladian {
 	      const Eigen::MatrixXd & lindblad_matrix);
 
   Lindbladian(const Lindbladian & other);
+
+protected:
+  Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian);
 };
 
 scalar_t bose_distribution(double temperature,
