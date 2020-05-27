@@ -45,7 +45,7 @@ public:
   ObservableVectorMixin(const std::vector<calc_mat_t> & observables)
     :Base(), m_observables(observables), m_records(m_observables.size()) {}
     
-protected:
+  // protected:
   std::vector<calc_mat_t> m_observables;
   std::vector<std::vector<double>> m_records;
 };
@@ -170,7 +170,7 @@ public:
     }
   }
 
-protected:
+  // protected:
   std::vector<calc_mat_t> m_observables;
   std::vector<std::vector<std::vector<double>>> m_records;
 };

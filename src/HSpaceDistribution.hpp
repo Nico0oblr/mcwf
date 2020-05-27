@@ -42,8 +42,9 @@ public:
     Construct corresponding density matrix
   */
   calc_mat_t density_matrix() const;
-  
-private:
+
+  // Needs to be public for pickling
+  // private:
   std::vector<double> m_probabilities;
   std::vector<vec_t> m_states;
 };

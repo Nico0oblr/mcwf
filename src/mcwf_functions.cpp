@@ -6,6 +6,7 @@
 
 vec_t jump_process(const vec_t & state,
 		   const Lindbladian & system) {
+  // LOG(logINFO) << "JUMP" << std::endl;
   Eigen::VectorXd jump_probabilities(system.m_lindblad_operators.size());
 
   for (size_type i = 0; i < system.m_lindblad_operators.size(); ++i) {
@@ -27,7 +28,7 @@ void perform_time_step(const Lindbladian & system,
   state = hamiltonian.propagate(t, dt, state);
   double norm = state.squaredNorm();
 
-  if (!(norm <= 1.0)) {
+  if (norm > 1.0) {
     LOG(logWARNING) << "Warning: Norm should be decreasing with time: "
 		    << std::endl;
   }

@@ -28,11 +28,6 @@ public:
 				  calc_mat_t::Identity(elec_dim, elec_dim)).eval();
     time_dep = kroneckerProduct(time_dep,
 				calc_mat_t::Identity(elec_dim, elec_dim)).eval();
-    std::cout << "cavity dim" << std::endl;
-    print_matrix_dim(time_indep);
-    print_matrix_dim(time_dep);
-    std::cout << "dimension: " << dimension << std::endl;
-    std::cout << "elec_dim: " << elec_dim << std::endl;
   }
 
 private:

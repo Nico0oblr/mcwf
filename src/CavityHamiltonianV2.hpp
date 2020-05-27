@@ -53,9 +53,20 @@ struct DiagonalizedMatrix {
 
 class CavityHamiltonianV2 : public TimeDependentHamiltonian<calc_mat_t> {
   using Base = TimeDependentHamiltonian<calc_mat_t>;
-  
-  double m_laser_frequency;
-  int m_elec_dim;
+public:
+
+  const double m_frequency;
+  const double m_laser_frequency;
+  const double m_laser_amplitude;
+  const int m_elec_dim;
+  const int m_dimension;
+  const calc_mat_t m_light_matter;
+  const double m_dt;
+  const double m_gamma;
+  const double m_n_b;
+  size_type m_order;
+
+private:
   calc_mat_t m_e_X;
   DiagonalizedMatrix m_Y;
   DiagonalizedMatrix m_first_comm;
@@ -71,7 +82,6 @@ class CavityHamiltonianV2 : public TimeDependentHamiltonian<calc_mat_t> {
   double m_fourth_norm;
   double m_fifth_norm;
 
-  size_type m_order;
   
 public:
   double driving_term(double t) const;
@@ -115,6 +125,14 @@ struct CavityLindbladian : public Lindbladian {
      
   std::unique_ptr<Hamiltonian<calc_mat_t>> hamiltonian() const override {
     return mcwf_hamiltonian.clone();
+  }
+
+  const CavityHamiltonianV2 & hamiltonian_expl() const {
+    return mcwf_hamiltonian;
+  }
+
+  CavityHamiltonianV2 & hamiltonian_expl() {
+    return mcwf_hamiltonian;
   }
 
   CavityHamiltonianV2 mcwf_hamiltonian;

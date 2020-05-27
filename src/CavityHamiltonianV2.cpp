@@ -14,8 +14,16 @@ CavityHamiltonianV2::CavityHamiltonianV2(double frequency,
   :Base(DrivenCavityHamiltonian(frequency, laser_frequency,
 				laser_amplitude, dimension, elec_dim),
 	dimension * elec_dim) ,
+   m_frequency(frequency),
    m_laser_frequency(laser_frequency),
-   m_elec_dim(elec_dim), m_order(6) {
+   m_laser_amplitude(laser_amplitude),
+   m_elec_dim(elec_dim),
+   m_dimension(dimension),
+   m_light_matter(light_matter),
+   m_dt(dt),
+   m_gamma(gamma),
+   m_n_b(n_b),
+   m_order(6) {
   calc_mat_t photon_energy = frequency * numberOperator(dimension);
   calc_mat_t  driving_term = laser_amplitude
     * (annihilationOperator(dimension) + creationOperator(dimension));
@@ -98,4 +106,4 @@ void CavityHamiltonianV2::set_order(int order) {
 }
 
 CavityHamiltonianV2* CavityHamiltonianV2::clone_impl() const
-{return new CavityHamiltonianV2(*this);};
+{return new CavityHamiltonianV2(*this);}

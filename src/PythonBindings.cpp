@@ -162,15 +162,62 @@ PYBIND11_MODULE(mcwf, m) {
     py::class_<MCWFObservableRecorder, MCWFRecorder>(m, "MCWFObservableRecorder")
       .def("expval", &MCWFObservableRecorder::expval)
       .def("distribution", &MCWFObservableRecorder::distribution)
-      .def(py::init<const std::vector<calc_mat_t> & , int>());
+      .def(py::init<const std::vector<calc_mat_t> & , int>())
+      .def(py::pickle
+	   (
+	    [](const MCWFObservableRecorder &p) { // __getstate__
+	      return py::make_tuple(p.m_observables,
+				    p.n_runs(),
+				    p.m_records);
+	    },
+	    [](py::tuple t) { // __setstate__
+	      if (t.size() != 3) {
+		throw std::runtime_error("Invalid state!");
+	      }	      
+	      MCWFObservableRecorder tmp(t[0].cast<std::vector<calc_mat_t>>(),
+					 t[1].cast<int>());
+	      tmp.m_records = t[2].cast<std::vector<std::vector<std::vector<double>>>>();
+	      return tmp;
+	    }
+	    ));
     py::class_<StateObservableRecorder, RecorderHost<vec_t>>
       (m, "StateObservableRecorder")
       .def("expval", &StateObservableRecorder::expval)
-      .def(py::init<const std::vector<calc_mat_t> &>());
+      .def(py::init<const std::vector<calc_mat_t> &>())
+      .def(py::pickle
+	   (
+	    [](const StateObservableRecorder &p) { // __getstate__
+	      return py::make_tuple(p.m_observables,
+				    p.m_records);
+	    },
+	    [](py::tuple t) { // __setstate__
+	      if (t.size() != 2) {
+		throw std::runtime_error("Invalid state!");
+	      }	      
+	      StateObservableRecorder tmp(t[0].cast<std::vector<calc_mat_t>>());
+	      tmp.m_records = t[1].cast<std::vector<std::vector<double>>>();
+	      return tmp;
+	    }
+	    ));
     py::class_<DmatObservableRecorder, RecorderHost<calc_mat_t>>
       (m, "DmatObservableRecorder")
       .def("expval", &DmatObservableRecorder::expval)
-      .def(py::init<const std::vector<calc_mat_t> &>());
+      .def(py::init<const std::vector<calc_mat_t> &>())
+      .def(py::pickle
+	   (
+	    [](const DmatObservableRecorder &p) { // __getstate__
+	      return py::make_tuple(p.m_observables,
+				    p.m_records);
+	    },
+	    [](py::tuple t) { // __setstate__
+	      if (t.size() != 2) {
+		throw std::runtime_error("Invalid state!");
+	      }	      
+	      DmatObservableRecorder tmp(t[0].cast<std::vector<calc_mat_t>>());
+	      tmp.m_records = t[1].cast<std::vector<std::vector<double>>>();
+	      return tmp;
+	    }
+	    ));
 
     // Density matrix recorder
     py::class_<MCWFDmatRecorder, MCWFRecorder>(m, "MCWFDmatRecorder")
@@ -225,7 +272,22 @@ PYBIND11_MODULE(mcwf, m) {
       .def(py::init<const std::vector<double> &,
 	   const std::vector<int> &, int>())
       .def(py::init<int>())
-      .def(py::self += py::self);
+      .def(py::self += py::self)
+      .def(py::pickle
+	   (
+	    [](const HSpaceDistribution &p) { // __getstate__
+	      return py::make_tuple(p.m_probabilities,
+				    p.m_states);
+	    },
+	    [](py::tuple t) { // __setstate__
+	      if (t.size() != 2) {
+		throw std::runtime_error("Invalid state!");
+	      }	      
+	      return HSpaceDistribution(t[0].cast<std::vector<double>>(),
+					t[1].cast<std::vector<vec_t>>());
+	    }
+	    ));
+	   
     m.def("coherent_photon_state", &coherent_photon_state);
     m.def("set_num_threads", [](int num_threads) {
 			       omp_set_dynamic(0);
@@ -251,7 +313,47 @@ PYBIND11_MODULE(mcwf, m) {
 	   const calc_mat_t, double>())
       .def("propagate", &CavityHamiltonianV2::propagate)
       .def("propagator", &CavityHamiltonianV2::propagator)
-      .def("set_order", &CavityHamiltonianV2::set_order);
+      .def("set_order", &CavityHamiltonianV2::set_order)
+      .def_readonly("frequency", &CavityHamiltonianV2::m_frequency)
+      .def_readonly("laser_frequency", &CavityHamiltonianV2::m_laser_frequency)
+      .def_readonly("laser_amplitude", &CavityHamiltonianV2::m_laser_amplitude)
+      .def_readonly("elec_dim", &CavityHamiltonianV2::m_elec_dim)
+      .def_readonly("dimension", &CavityHamiltonianV2::m_dimension)
+      .def_readonly("light_matter", &CavityHamiltonianV2::m_light_matter)
+      .def_readonly("dt", &CavityHamiltonianV2::m_dt)
+      .def_readonly("gamma", &CavityHamiltonianV2::m_gamma)
+      .def_readonly("n_b", &CavityHamiltonianV2::m_n_b)
+      .def(py::pickle
+	   (
+	    [](const CavityHamiltonianV2 &p) { // __getstate__
+	      return py::make_tuple(p.m_frequency,
+				    p.m_laser_frequency,
+				    p.m_laser_amplitude,
+				    p.m_elec_dim,
+				    p.m_dimension,
+				    p.m_light_matter,
+				    p.m_dt,
+				    p.m_gamma,
+				    p.m_n_b,
+				    p.m_order);
+	    },
+	    [](py::tuple t) { // __setstate__
+	      if (t.size() != 10) {
+		throw std::runtime_error("Invalid state!");
+	      }	      
+	      CavityHamiltonianV2 distro(t[0].cast<double>(),
+					 t[1].cast<double>(),
+					 t[2].cast<double>(),
+					 t[3].cast<int>(),
+					 t[4].cast<int>(),
+					 t[5].cast<calc_mat_t>(),
+					 t[6].cast<double>(),
+					 t[7].cast<double>(),
+					 t[8].cast<double>());
+	      distro.set_order(t[9].cast<int>());
+	      return distro;
+	    }
+	    ));
 
     py::class_<CavityLindbladian, Lindbladian>
       (m, "CavityLindbladian")
@@ -259,11 +361,44 @@ PYBIND11_MODULE(mcwf, m) {
 	   double, double, double>())
       .def("hamiltonian",&CavityLindbladian::hamiltonian)
       .def("system_hamiltonian", &CavityLindbladian::system_hamiltonian,
-	   py::return_value_policy::reference_internal);
+	   py::return_value_policy::reference_internal)
+      .def(py::pickle
+	   (
+	    [](const CavityLindbladian &p) { // __getstate__
+	      return py::make_tuple(p.hamiltonian_expl().m_frequency,
+				    p.hamiltonian_expl().m_laser_frequency,
+				    p.hamiltonian_expl().m_laser_amplitude,
+				    p.hamiltonian_expl().m_elec_dim,
+				    p.hamiltonian_expl().m_dimension,
+				    p.hamiltonian_expl().m_light_matter,
+				    p.hamiltonian_expl().m_dt,
+				    p.hamiltonian_expl().m_gamma,
+				    p.hamiltonian_expl().m_n_b,
+				    p.hamiltonian_expl().m_order);
+	    },
+	    [](py::tuple t) { // __setstate__
+	      if (t.size() != 10) {
+		throw std::runtime_error("Invalid state!");
+	      }	      
+	      CavityLindbladian distro(t[0].cast<double>(),
+					 t[1].cast<double>(),
+					 t[2].cast<double>(),
+					 t[3].cast<int>(),
+					 t[4].cast<int>(),
+					 t[5].cast<calc_mat_t>(),
+					 t[6].cast<double>(),
+					 t[7].cast<double>(),
+					 t[8].cast<double>());
+	      distro.hamiltonian_expl().set_order(t[9].cast<int>());
+	      return distro;
+	    }
+	    ));
 }
 /*
-.def("__mul__", [](const Vector2 &a, float b) {
-    return a * b;
-}, py::is_operator())
+  .def("__mul__", [](const Vector2 &a, float b) {
+  return a * b;
+  }, py::is_operator())
+
+
 
 */
