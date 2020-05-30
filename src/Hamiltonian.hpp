@@ -4,6 +4,7 @@
 #include "Common.hpp"
 #include "Operators.hpp"
 #include <memory>
+#include "PadeExponential.hpp"
 
 /*
   TODO: Take care of dimensionality
@@ -160,8 +161,8 @@ fourth_oder_timeordered_exponential(const std::function<MatrixType(double)> & H,
   static double c2 = (3.0 + 2.0 * std::sqrt(3.0)) / 12.0;
   MatrixType H1 = H(t + (0.5 - std::sqrt(3.0) / 6.0) * dt);
   MatrixType H2 = H(t + (0.5 + std::sqrt(3.0) / 6.0) * dt);
-  MatrixType fac1 = matrix_exponential(-1.0i * (c1 * H1 + c2 * H2) * dt);
-  MatrixType fac2 = matrix_exponential(-1.0i * (c2 * H1 + c1 * H2) * dt);
+  MatrixType fac1 = expm(-1.0i * (c1 * H1 + c2 * H2) * dt);
+  MatrixType fac2 = expm(-1.0i * (c2 * H1 + c1 * H2) * dt);
   return fac1 * fac2;
 }
 
@@ -180,8 +181,8 @@ fourth_oder_timeordered_exponential(const std::function<MatrixType(double)> & H,
 
   // vec_t apply_fac2 = apply_matrix_exponential_taylor(fac2, state, 4);
   // vec_t apply_fac1 = apply_matrix_exponential_taylor(fac1, apply_fac2, 4);
-  vec_t apply_fac2 = matrix_exponential(fac2) * state;
-  vec_t apply_fac1 = matrix_exponential(fac1) * apply_fac2;
+  vec_t apply_fac2 = expm(fac2) * state;
+  vec_t apply_fac1 = expm(fac1) * apply_fac2;
   return apply_fac1;
 }
 

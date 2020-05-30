@@ -30,6 +30,11 @@
 
 #include "CavityHamiltonian.hpp"
 #include "CavityHamiltonianV2.hpp"
+#include "PadeExponential.hpp"
+#include "OneNormEst.hpp"
+#include "MatrixExpApply.hpp"
+
+#include "ArnoldiIteration.hpp"
 
 namespace py = pybind11;
 
@@ -46,6 +51,8 @@ PYBIND11_MODULE(mcwf, m) {
     m.def("exchange_interaction", &exchange_interaction, "");
     m.def("J0", &J0, "");
     m.def("nth_subsystem", &nth_subsystem, "");
+    m.def("n_th_subsystem_sp", &n_th_subsystem_sp, "");
+    m.def("sum_operator_sp", &sum_operator_sp, "");
     m.def("operator_vector", &operator_vector, "");
     m.def("sum_operator", &sum_operator, "");
     m.def("pauli_x", &pauli_x, "");
@@ -123,10 +130,13 @@ PYBIND11_MODULE(mcwf, m) {
     mhub.def("n_up", &HubbardOperators::n_up);
     m.def("Hubbard_hamiltonian", &Hubbard_hamiltonian);
     m.def("Hubbard_light_matter", &Hubbard_light_matter);
+    m.def("Hubbard_light_matter_sp", &Hubbard_light_matter_sp);
     m.def("get_spin_sector", &get_spin_sector);
     m.def("HubbardNeelState", &HubbardNeelState);
+    m.def("HubbardNeelState_sp", &HubbardNeelState_sp);
     m.def("DimerGroundState", &DimerGroundState);
     m.def("HubbardProjector", &HubbardProjector);
+    m.def("HubbardProjector_sp", &HubbardProjector_sp);
 
     /*Solvers*/
     auto msolvers = m.def_submodule("Solvers");
@@ -312,6 +322,8 @@ PYBIND11_MODULE(mcwf, m) {
       .def(py::init<double, double, double, int, int ,
 	   const calc_mat_t, double>())
       .def("propagate", &CavityHamiltonianV2::propagate)
+      .def("BCH_propagate", &CavityHamiltonianV2::BCH_propagate)
+      .def("ST_propagate", &CavityHamiltonianV2::ST_propagate)
       .def("propagator", &CavityHamiltonianV2::propagator)
       .def("set_order", &CavityHamiltonianV2::set_order)
       .def_readonly("frequency", &CavityHamiltonianV2::m_frequency)
@@ -393,12 +405,60 @@ PYBIND11_MODULE(mcwf, m) {
 	      return distro;
 	    }
 	    ));
+    /*PadeExponential.hpp*/
+    m.def("onenorm_power", &onenorm_power, "");
+    m.def("_ell", &_ell, "");
+    m.def("expm", &expm, "");
+
+    m.def("Hubbard_site_operator", &Hubbard_site_operator);
+    m.def("ST_decomp_exp", &ST_decomp_exp);
+    m.def("ST_decomp_exp_apply", &ST_decomp_exp_apply);
+
+    /*OneNormEst*/
+    // m.def("_algorithm_2_2", &_algorithm_2_2<spmat_t, spmat_t>);
+    m.def("onenormest", &onenormest<spmat_t>);
+    m.def("randint", &randint);
+    // m.def("close", &close);
+    m.def("less_than_or_close", &less_than_or_close);
+    m.def("in1d", &in1d<Eigen::MatrixXd, Eigen::MatrixXd>);
+    m.def("invert_indexer", &invert_indexer);
+    m.def("algorithm_2_2", [](const spmat_t & A, const spmat_t & B, int t)
+			    {return _algorithm_2_2(A, B, t);});
+    m.def("onenormest_matrix_power", &onenormest_matrix_power);
+
+
+    /*Expm apply*/
+    m.def("expm_multiply_simple", &expm_multiply_simple);
+    m.def("expm_multiply_simple_core", &_expm_multiply_simple_core);
+    m.def("condition_3_13", &_condition_3_13);
+    m.def("fragment_3_1", &_fragment_3_1);
+    m.def("compute_cost_div_m", &_compute_cost_div_m);
+    m.def("compute_p_max", &compute_p_max);
+    m.def("exact_onenorm", [](const spmat_t & mat) {return mat.oneNorm();});
+    m.def("exact_infnorm", [](const spmat_t & mat) {return mat.infNorm();});
+
+    py::class_<LazyOperatorNormInfo<spmat_t>>(m, "LazyOperatorNormInfo")
+      .def("set_scale", &LazyOperatorNormInfo<spmat_t>::set_scale)
+      .def("onenorm", &LazyOperatorNormInfo<spmat_t>::onenorm)
+      .def("d", &LazyOperatorNormInfo<spmat_t>::d)
+      .def("alpha", &LazyOperatorNormInfo<spmat_t>::alpha)
+      .def(py::init<const spmat_t &, double>());
+
+    /*ArnoldiIteration.hpp*/
+    py::class_<ArnoldiIteration<spmat_t>>(m, "ArnoldiIteration")
+      .def("H", &ArnoldiIteration<spmat_t>::H)
+      .def("V", &ArnoldiIteration<spmat_t>::V)
+      .def("nit", &ArnoldiIteration<spmat_t>::nit)
+      .def("eigenvectors", &ArnoldiIteration<spmat_t>::eigenvectors)
+      .def("eigenvalues", &ArnoldiIteration<spmat_t>::eigenvalues)
+      .def("k_n_arnoldi", &ArnoldiIteration<spmat_t>::k_n_arnoldi)
+      .def("restart", &ArnoldiIteration<spmat_t>::restart)
+      .def("apply_exp", &ArnoldiIteration<spmat_t>::apply_exp)
+      .def(py::init<const spmat_t &, int, int>())
+      .def(py::init<const spmat_t &, int, int, const vec_t &>())
+      .def(py::init<>());
+
+    m.def("exp_krylov", &exp_krylov);
+    m.def("exp_krylov_alt", &exp_krylov_alt);
 }
-/*
-  .def("__mul__", [](const Vector2 &a, float b) {
-  return a * b;
-  }, py::is_operator())
 
-
-
-*/

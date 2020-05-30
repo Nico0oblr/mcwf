@@ -1,6 +1,31 @@
 #include "Hamiltonian.hpp"
 #include "Lindbladian.hpp"
 
+spmat_t Hubbard_site_operator(int photon_dimension,
+			      int sites,
+			      int site,
+			      double coupling,
+			      double hopping,
+			      double hubbardU,
+			      const spmat_t & proj);
+
+spmat_t ST_decomp_exp(int photon_dimension,
+		      int sites,
+		      double coupling,
+		      double hopping,
+		      double hubbardU,
+		      const spmat_t & proj,
+		      double dt);
+
+vec_t ST_decomp_exp_apply(int photon_dimension,
+			    int sites,
+			    double coupling,
+			    double hopping,
+			    double hubbardU,
+			    const spmat_t & proj,
+			    double dt, const vec_t & state);
+
+
 template<typename Derived>
 vec_t apply_tensor_id(const Eigen::EigenBase<Derived> & mat, const vec_t & vec) {
   vec_t out = vec_t::Zero(vec.size());
@@ -19,36 +44,20 @@ vec_t apply_tensor_id(const Eigen::EigenBase<Derived> & mat, const vec_t & vec) 
 
 struct DiagonalizedMatrix {
 
-  void set_from(const calc_mat_t & matrix) {
-    self = matrix;
-    Eigen::ComplexEigenSolver<calc_mat_t> solver(matrix, true);
-    D = solver.eigenvalues();
-    V = solver.eigenvectors();
-    Eigen::PartialPivLU<mat_t> inverter(V);
-    V_inv = inverter.inverse();
-  }
-
-  DiagonalizedMatrix & operator=(const calc_mat_t & other) {
-    set_from(other);
-    return *this;
-  }
-
-  calc_mat_t exp(std::complex<double> factor) const {
-    return V * (D * factor).array().exp().matrix().asDiagonal() * V_inv;
-  }
-
-  calc_mat_t exp_apply(std::complex<double> factor, const vec_t & vec) {
-    return apply_tensor_id(exp(factor), vec);
-  }
-
-  const calc_mat_t & operator()() const {
-    return self;
-  }
+  void set_from(const calc_mat_t & matrix);
+  
+  DiagonalizedMatrix & operator=(const calc_mat_t & other);
+  
+  mat_t exp(std::complex<double> factor) const;
+  
+  vec_t exp_apply(std::complex<double> factor, const vec_t & vec);
+  
+  const calc_mat_t & operator()() const;
   
   calc_mat_t self;
   vec_t D;
-  calc_mat_t V;
-  calc_mat_t V_inv;
+  mat_t V;
+  mat_t V_inv;
 };
 
 class CavityHamiltonianV2 : public TimeDependentHamiltonian<calc_mat_t> {
@@ -67,7 +76,8 @@ public:
   size_type m_order;
 
 private:
-  calc_mat_t m_e_X;
+  mat_t m_X;
+  mat_t m_e_X;
   DiagonalizedMatrix m_Y;
   DiagonalizedMatrix m_first_comm;
   DiagonalizedMatrix m_second_comm;
@@ -93,6 +103,10 @@ public:
     
   calc_mat_t propagator(double t, double dt) override;
   
+  vec_t BCH_propagate(double t, double dt, const vec_t & state);
+
+  vec_t ST_propagate(double t, double dt, const vec_t & state);
+
   vec_t propagate(double t, double dt, const vec_t & state) override;
 
   void set_order(int order);
@@ -107,33 +121,13 @@ struct CavityLindbladian : public Lindbladian {
   CavityLindbladian(double frequency, double laser_frequency,
 		    double laser_amplitude, int elec_dim, int dimension,
 		    const calc_mat_t & light_matter,
-		    double dt, double gamma, double n_b)
-    :Base(CavityHamiltonianV2(frequency, laser_frequency,
-			      laser_amplitude, elec_dim, dimension,
-			      light_matter, dt, 0.0, 0.0)),
-     mcwf_hamiltonian(CavityHamiltonianV2(frequency, laser_frequency,
-					  laser_amplitude, elec_dim, dimension,
-					  light_matter, dt, gamma, n_b)) {
-    assert(elec_dim * dimension == light_matter.rows());
-    calc_mat_t A = annihilationOperator_sp(dimension);
-    calc_mat_t A_t = creationOperator_sp(dimension);
-    A = kroneckerProduct(A, calc_mat_t::Identity(elec_dim, elec_dim)).eval();
-    A_t = kroneckerProduct(A_t, calc_mat_t::Identity(elec_dim, elec_dim)).eval();
-    Base::m_lindblad_operators = {A, A_t};
-    Base::m_lindblad_amplitudes = {gamma * (1.0 + n_b), gamma * n_b};
-  }
+		    double dt, double gamma, double n_b);
      
-  std::unique_ptr<Hamiltonian<calc_mat_t>> hamiltonian() const override {
-    return mcwf_hamiltonian.clone();
-  }
-
-  const CavityHamiltonianV2 & hamiltonian_expl() const {
-    return mcwf_hamiltonian;
-  }
-
-  CavityHamiltonianV2 & hamiltonian_expl() {
-    return mcwf_hamiltonian;
-  }
-
+  std::unique_ptr<Hamiltonian<calc_mat_t>> hamiltonian() const override;
+  
+  const CavityHamiltonianV2 & hamiltonian_expl() const;
+  
+  CavityHamiltonianV2 & hamiltonian_expl();
+  
   CavityHamiltonianV2 mcwf_hamiltonian;
 };

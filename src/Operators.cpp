@@ -330,3 +330,37 @@ mat_t HeisenbergChain(int sites,
   // ham += ham.adjoint().eval();
   return ham - mat_t::Identity(ham.cols(), ham.rows());
 }
+
+spmat_t n_th_subsystem_sp(const spmat_t & op,
+			  int n_subsystem,
+			  int n_subsystems) {
+  int left_dimension = n_subsystem;
+  int right_dimension = n_subsystems - n_subsystem - 1;
+  int system_dim = op.rows();
+  assert(left_dimension >= 0);
+  assert(right_dimension >= 0);
+  assert(op.rows() == op.cols());
+  int ldim = std::pow(system_dim, left_dimension);
+  int rdim = std::pow(system_dim, right_dimension);
+  
+  if ((right_dimension == 0) && (left_dimension == 0)) {
+    return op;
+  }
+  if (right_dimension == 0) {
+    return tensor_identity_LHS(op, ldim);
+  } else if (left_dimension == 0) {
+    return tensor_identity(op, rdim);
+  } else {
+    spmat_t tmp = tensor_identity(op, rdim);
+    return tensor_identity_LHS(tmp, ldim);
+  }
+}
+
+spmat_t sum_operator_sp(const spmat_t & op, int sites) {
+  assert(sites > 0);
+  spmat_t out = n_th_subsystem_sp(op, 0, sites);
+  for (int i = 1; i < sites; ++i) {
+    out += n_th_subsystem_sp(op, i, sites);
+  }
+  return out;
+}

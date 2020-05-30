@@ -11,6 +11,7 @@
 #pragma GCC diagnostic pop
 #include <iostream>
 
+
 const double tol = 1e-10;
 
 /*
@@ -24,8 +25,7 @@ using mat_t = Eigen::Matrix<scalar_t, Eigen::Dynamic, Eigen::Dynamic>;
 using diag_mat_t = Eigen::DiagonalMatrix<scalar_t, Eigen::Dynamic,
 					 Eigen::Dynamic>;
 using spmat_t = Eigen::SparseMatrix<scalar_t>;
-using calc_mat_t = mat_t;
-
+using calc_mat_t = spmat_t;
 
 /*
   Prints the matrix cols / rows to stdout
@@ -186,7 +186,7 @@ double sparsity(const Eigen::MatrixBase<Derived> & mat) {
 
 template<typename Derived>
 double sparsity(const Eigen::SparseMatrixBase<Derived> & mat) {
-  return mat.nonZeros() / static_cast<double>(mat.size());
+  return mat.derived().nonZeros() / static_cast<double>(mat.size());
 }
 
 /*
