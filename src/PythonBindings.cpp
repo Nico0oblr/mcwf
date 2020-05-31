@@ -3,10 +3,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
-#include <pybind11/complex.h>
 #include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/iostream.h>
+#include <pybind11/complex.h>
 
 #include "Operators.hpp"
 #include "Common.hpp"
@@ -35,38 +35,58 @@
 #include "MatrixExpApply.hpp"
 
 #include "ArnoldiIteration.hpp"
+#include "MatrixWrappers.hpp"
+#include "LinearOperator.hpp"
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(mcwf, m) {
-    m.doc() = "mcwf simulation bindings"; // optional module docstring
 
-    /*Operators.hpp*/
-    m.def("creationOperator", &creationOperator, "");
-    m.def("annihilationOperator", &annihilationOperator, "");
-    m.def("numberOperator", &numberOperator, "");
-    m.def("creationOperator_sp", &creationOperator, "");
-    m.def("annihilationOperator_sp", &annihilationOperator, "");
-    m.def("numberOperator_sp", &numberOperator, "");
-    m.def("exchange_interaction", &exchange_interaction, "");
-    m.def("J0", &J0, "");
-    m.def("nth_subsystem", &nth_subsystem, "");
-    m.def("n_th_subsystem_sp", &n_th_subsystem_sp, "");
-    m.def("sum_operator_sp", &sum_operator_sp, "");
-    m.def("operator_vector", &operator_vector, "");
-    m.def("sum_operator", &sum_operator, "");
-    m.def("pauli_x", &pauli_x, "");
-    m.def("pauli_y", &pauli_y, "");
-    m.def("pauli_z", &pauli_z, "");
-    m.def("pauli_x_vector", &pauli_x_vector, "");
-    m.def("pauli_y_vector", &pauli_y_vector, "");
-    m.def("pauli_z_vector", &pauli_z_vector, "");
-    m.def("pauli_z_total", &pauli_z_total, "");
-    m.def("pauli_squared_total", &pauli_squared_total, "");
-    m.def("HeisenbergChain", &HeisenbergChain, "");
-    /*Common.hpp*/
-    m.def("add_vectors", &add_vectors, "");
-    m.def("linear_search", &linear_search<std::vector<double>>, "");
+template<typename T>
+void declare_arnoldi(py::module & mod, const std::string & typestr) {
+  std::string pyclass_name = std::string("ArnoldiIteration") + typestr;
+  py::class_<ArnoldiIteration<T>>(mod, pyclass_name.c_str())
+    .def("H", &ArnoldiIteration<T>::H)
+    .def("V", &ArnoldiIteration<T>::V)
+    .def("nit", &ArnoldiIteration<T>::nit)
+    .def("eigenvectors", &ArnoldiIteration<T>::eigenvectors)
+    .def("eigenvalues", &ArnoldiIteration<T>::eigenvalues)
+    .def("k_n_arnoldi", &ArnoldiIteration<T>::k_n_arnoldi)
+    .def("restart", &ArnoldiIteration<T>::restart)
+    .def("apply_exp", &ArnoldiIteration<T>::apply_exp)
+    .def(py::init<const T &, int, int>())
+    .def(py::init<const T &, int, int, const vec_t &>())
+    .def(py::init<>());
+}
+
+PYBIND11_MODULE(mcwf, m) {  
+  m.doc() = "mcwf simulation bindings"; // optional module docstring
+
+  /*Operators.hpp*/
+  m.def("creationOperator", &creationOperator, "");
+  m.def("annihilationOperator", &annihilationOperator, "");
+  m.def("numberOperator", &numberOperator, "");
+  m.def("creationOperator_sp", &creationOperator, "");
+  m.def("annihilationOperator_sp", &annihilationOperator, "");
+  m.def("numberOperator_sp", &numberOperator, "");
+  m.def("exchange_interaction", &exchange_interaction, "");
+  m.def("J0", &J0, "");
+  m.def("nth_subsystem", &nth_subsystem, "");
+  m.def("n_th_subsystem_sp", &n_th_subsystem_sp, "");
+  m.def("sum_operator_sp", &sum_operator_sp, "");
+  m.def("operator_vector", &operator_vector, "");
+  m.def("sum_operator", &sum_operator, "");
+  m.def("pauli_x", &pauli_x, "");
+  m.def("pauli_y", &pauli_y, "");
+  m.def("pauli_z", &pauli_z, "");
+  m.def("pauli_x_vector", &pauli_x_vector, "");
+  m.def("pauli_y_vector", &pauli_y_vector, "");
+  m.def("pauli_z_vector", &pauli_z_vector, "");
+  m.def("pauli_z_total", &pauli_z_total, "");
+  m.def("pauli_squared_total", &pauli_squared_total, "");
+  m.def("HeisenbergChain", &HeisenbergChain, "");
+  /*Common.hpp*/
+  m.def("add_vectors", &add_vectors, "");
+  m.def("linear_search", &linear_search<std::vector<double>>, "");
     m.def("linear_search", &linear_search<Eigen::VectorXd>, "");
     m.def("binomial", &binomial, "");
     m.def("poisson", &poisson, "");
@@ -393,14 +413,14 @@ PYBIND11_MODULE(mcwf, m) {
 		throw std::runtime_error("Invalid state!");
 	      }	      
 	      CavityLindbladian distro(t[0].cast<double>(),
-					 t[1].cast<double>(),
-					 t[2].cast<double>(),
-					 t[3].cast<int>(),
-					 t[4].cast<int>(),
-					 t[5].cast<calc_mat_t>(),
-					 t[6].cast<double>(),
-					 t[7].cast<double>(),
-					 t[8].cast<double>());
+				       t[1].cast<double>(),
+				       t[2].cast<double>(),
+				       t[3].cast<int>(),
+				       t[4].cast<int>(),
+				       t[5].cast<calc_mat_t>(),
+				       t[6].cast<double>(),
+				       t[7].cast<double>(),
+				       t[8].cast<double>());
 	      distro.hamiltonian_expl().set_order(t[9].cast<int>());
 	      return distro;
 	    }
@@ -423,7 +443,7 @@ PYBIND11_MODULE(mcwf, m) {
     m.def("in1d", &in1d<Eigen::MatrixXd, Eigen::MatrixXd>);
     m.def("invert_indexer", &invert_indexer);
     m.def("algorithm_2_2", [](const spmat_t & A, const spmat_t & B, int t)
-			    {return _algorithm_2_2(A, B, t);});
+			   {return _algorithm_2_2(A, B, t);});
     m.def("onenormest_matrix_power", &onenormest_matrix_power);
 
 
@@ -445,20 +465,27 @@ PYBIND11_MODULE(mcwf, m) {
       .def(py::init<const spmat_t &, double>());
 
     /*ArnoldiIteration.hpp*/
-    py::class_<ArnoldiIteration<spmat_t>>(m, "ArnoldiIteration")
-      .def("H", &ArnoldiIteration<spmat_t>::H)
-      .def("V", &ArnoldiIteration<spmat_t>::V)
-      .def("nit", &ArnoldiIteration<spmat_t>::nit)
-      .def("eigenvectors", &ArnoldiIteration<spmat_t>::eigenvectors)
-      .def("eigenvalues", &ArnoldiIteration<spmat_t>::eigenvalues)
-      .def("k_n_arnoldi", &ArnoldiIteration<spmat_t>::k_n_arnoldi)
-      .def("restart", &ArnoldiIteration<spmat_t>::restart)
-      .def("apply_exp", &ArnoldiIteration<spmat_t>::apply_exp)
-      .def(py::init<const spmat_t &, int, int>())
-      .def(py::init<const spmat_t &, int, int, const vec_t &>())
-      .def(py::init<>());
+    declare_arnoldi<spmat_t>(m, "");
 
     m.def("exp_krylov", &exp_krylov);
     m.def("exp_krylov_alt", &exp_krylov_alt);
-}
+    m.def("kroneckerApply", &kroneckerApply);
+    m.def("kroneckerApplyLazy", &kroneckerApply);
 
+    py::class_<LinearOperator<spmat_t>>(m, "LinearOperator")
+      .def("__mul__", [](const LinearOperator<spmat_t> & a,
+			 const std::complex<double> & b) {
+			auto copy = a.clone();
+			copy->mult_by_scalar(b);
+			return copy;
+		      }, py::is_operator())
+      .def("__rmul__", [](const LinearOperator<spmat_t> & a,
+			  const std::complex<double> & b) {
+			auto copy = a.clone();
+			copy->mult_by_scalar(b);
+			return copy;
+		      }, py::is_operator());
+    /*LinearOperator*/
+    m.def("Hubbard_light_matter_Operator", &Hubbard_light_matter_Operator);
+    declare_arnoldi<LinearOperator<spmat_t>>(m, "Operator");
+}

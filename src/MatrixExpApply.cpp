@@ -31,7 +31,6 @@ std::pair<int, long> _fragment_3_1(LazyOperatorNormInfo<spmat_t> & norm_info,
   int best_m = -1;
   long best_s = -1;
   if (_condition_3_13(norm_info.onenorm(), n0, m_max, ell)) {
-    std::cout << "first" << std::endl;
     for (auto it = _theta.begin(); it != _theta.end(); ++it) {
       int m = it->first;
       double theta = it->second;
@@ -44,7 +43,6 @@ std::pair<int, long> _fragment_3_1(LazyOperatorNormInfo<spmat_t> & norm_info,
       }
     }
   } else {
-    std::cout << "second" << std::endl;
     //  Equation (3.11).
     for (int p = 2; p < compute_p_max(m_max) + 1; ++p) {
       for (int m = p * (p - 1) - 1; m < m_max + 1; ++m) {
@@ -75,7 +73,7 @@ bool _condition_3_13(double A_1_norm, int n0, int m_max, int ell) {
   return A_1_norm <= a * b;
 }
 
-spmat_t expm_multiply_simple(const spmat_t & _A, const spmat_t & B,
+spmat_t expm_multiply_simple(const spmat_t & _A, const vec_t & B,
 			     double t) {
   spmat_t A = _A;
   assert(A.cols() == B.rows()
@@ -103,22 +101,24 @@ spmat_t expm_multiply_simple(const spmat_t & _A, const spmat_t & B,
 }
 
 spmat_t _expm_multiply_simple_core(const spmat_t & A,
-				   const spmat_t & _B,
+				   const vec_t & _B,
 				   double t, std::complex<double> mu,
 				   int m_star, long s,
 				   double tol) {
+  int matmuls = 0;
   assert(tol == std::pow(2.0, -53.0));
-  spmat_t B = _B;
-  spmat_t F = B;
+  vec_t B = _B;
+  vec_t F = B;
   std::complex<double> eta = std::exp(t * mu / static_cast<double>(s));
   for (long i = 0; i < s; ++i) {
-    double c1 = B.infNorm();
+    double c1 = B.lpNorm<Eigen::Infinity>();
     for (int j = 0; j < m_star; ++j) {
       double coeff = t / static_cast<double>(s * (j + 1));
       B = coeff * A * B;
-      double c2 = B.infNorm();
+      ++matmuls;
+      double c2 = B.lpNorm<Eigen::Infinity>();
       F = F + B;
-      if (c1 + c2 <= tol * F.infNorm()) break;
+      if (c1 + c2 <= tol * F.lpNorm<Eigen::Infinity>()) break;
       c1 = c2;
     }
 
@@ -126,7 +126,6 @@ spmat_t _expm_multiply_simple_core(const spmat_t & A,
     B = F;
   }
 
-  LOG_VAR(s);
-  LOG_VAR(m_star);
+  LOG_VAR(matmuls);
   return F;
 }

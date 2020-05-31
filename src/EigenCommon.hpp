@@ -175,13 +175,13 @@ vec_t unstack_matrix_alt(const Eigen::EigenBase<Derived> & mat) {
 }
 
 /*
-  Prints the percentage of matrix entries below a certain tolerance.
+  Prints the percentage of matrix entries above a certain tolerance.
  */
 template<typename Derived>
 double sparsity(const Eigen::MatrixBase<Derived> & mat) {
   double zeros = (mat.derived().array().abs() < tol).count();
   double entries = mat.size();
-  return zeros / entries;
+  return 1.0 - zeros / entries;
 }
 
 template<typename Derived>

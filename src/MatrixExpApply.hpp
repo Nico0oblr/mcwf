@@ -58,7 +58,7 @@ _theta = {{1, 2.29e-16},
 */
 template<typename MatrixType>
 class LazyOperatorNormInfo {
-  MatrixType m_A;
+  const MatrixType * m_A;
   double m_A_1_norm;
   int m_ell;
   int m_scale;
@@ -81,18 +81,18 @@ public:
 		       double A_1_norm = -1.0,
 		       int ell = 2,
 		       int scale = 1)
-    :m_A(A), m_A_1_norm(A_1_norm), m_ell(ell), m_scale(scale), m_d() {}
+    :m_A(&A), m_A_1_norm(A_1_norm), m_ell(ell), m_scale(scale), m_d() {}
 
   void set_scale(int scale) {m_scale = scale;}
 
   double onenorm() {
-    if(m_A_1_norm < 0) m_A_1_norm = m_A.oneNorm();
+    if(m_A_1_norm < 0) m_A_1_norm = m_A->oneNorm();
     return m_scale * m_A_1_norm;
   }
   
   double d(int p) {
     if (m_d.find(p) == m_d.end()) {
-      double est = onenormest_matrix_power(m_A, p, m_ell);
+      double est = onenormest_matrix_power(*m_A, p, m_ell);
       m_d.emplace(p, std::pow(est, (1.0 / p)));
     }
     return m_scale * m_d.at(p);
@@ -208,11 +208,11 @@ bool _condition_3_13(double A_1_norm, int n0, int m_max, int ell);
   -----
   This is algorithm (3.2) in Al-Mohy and Higham (2011).
 */
-spmat_t expm_multiply_simple(const spmat_t & A, const spmat_t & B,
+spmat_t expm_multiply_simple(const spmat_t & A, const vec_t & B,
 			     double t = 1.0);
 
 spmat_t _expm_multiply_simple_core(const spmat_t & A,
-				   const spmat_t & B,
+				   const vec_t & B,
 				   double t, std::complex<double> mu,
 				   int m_star, long s,
 				   double tol);

@@ -4,6 +4,7 @@
 #include "Common.hpp"
 #include <unordered_map>
 #include "MatrixExpApply.hpp"
+#include "PadeExponential.hpp"
 
 namespace std{
   template<typename T>
@@ -37,7 +38,7 @@ struct ArnoldiIteration {
     MaxRowsAtCompileTime = MatrixType::MaxRowsAtCompileTime,
     MaxColsAtCompileTime = MatrixType::MaxColsAtCompileTime
   };
-  
+
   typedef typename MatrixType::Scalar Scalar;
   typedef typename Eigen::NumTraits<Scalar>::Real RealScalar;
   typedef Eigen::Index Index;
@@ -53,18 +54,19 @@ struct ArnoldiIteration {
   Eigen::Block<const EigenvectorType> H() const;
   Eigen::Block<const EigenvectorType> V() const;
 
-  const EigenvectorType & eigenvectors() const;
+  const EigenvectorType & eigenvectors();
 
-  const EigenvalueType &eigenvalues() const;
+  const EigenvalueType &eigenvalues();
   /*
     Maybe TODO: Create method to sort for converged vectors and return?
    */
   int nit() const;
 
-  vec_t apply_exp(const vec_t & vec, int nconv) const {
-    return V().topLeftCorner(V().rows(), nconv)
-      * matrix_exponential(H().eval()).topLeftCorner(nconv, nconv)
-      * vec_t::Unit(nconv, 0)
+  EigenvalueType apply_exp(const EigenvalueType & vec,
+			   int nconv) const {
+    return m_V.topLeftCorner(m_V.rows(), nconv)
+      * expm_multiply_simple(m_H.topLeftCorner(nconv, nconv).eval(),
+			     vec_t::Unit(nconv, 0))
       * vec.norm();
   }
 
@@ -79,7 +81,7 @@ struct ArnoldiIteration {
   ArnoldiIteration(const MatrixType & A, int nev, int ncv);
 
   ArnoldiIteration(const MatrixType & A, int nev, int ncv,
-		   const EigenvectorType & v0);
+		   const EigenvalueType & v0);
 
   /*
     Continues with nev arnoldi iterations using the existing matrices.
@@ -101,6 +103,20 @@ struct ArnoldiIteration {
   std::unordered_map<ComplexScalar, EigenvectorType>
   transformed(ComplexScalar sigma);
 
+  void compute_eival_if_needed() {
+    using eigenSolver = Eigen::ComplexEigenSolver<EigenvectorType>;
+    if (!m_isInitialized) {
+      eigenSolver eigen_solver(H(), true);
+
+      auto eival = eigen_solver.eigenvalues();
+      auto eivec = eigen_solver.eigenvectors();
+
+      m_eival = eigen_solver.eigenvalues();
+      m_eivec = V() * eigen_solver.eigenvectors();
+      m_isInitialized = true;
+      m_eigenvectorsOk = true;
+    }
+  }
 
   void restart();
   
@@ -146,14 +162,14 @@ ArnoldiIteration<MatrixType>::ArnoldiIteration(const MatrixType & A,
     m_isInitialized(false),
     m_eigenvectorsOk(false) {
   m_V.col(0).setRandom();
-  // m_V.col(0).setConstant({1.0, 1.0});
   m_V.col(0) /= m_V.col(0).norm();
   k_n_arnoldi(A, nev);
 }
 
 template<typename MatrixType>
 ArnoldiIteration<MatrixType>::ArnoldiIteration(const MatrixType & A,
-					       int nev, int ncv, const EigenvectorType & v0)
+					       int nev, int ncv,
+					       const EigenvalueType & v0)
   : nbr_iterations(0),
     nbr_converged(0),
     m_eivec(),
@@ -162,9 +178,9 @@ ArnoldiIteration<MatrixType>::ArnoldiIteration(const MatrixType & A,
     m_V(EigenvectorType::Zero(A.rows(), ncv + 1)),
     m_isInitialized(false),
     m_eigenvectorsOk(false) {
-  LOG(logINFO) << "using starting vector" << std::endl;
-  m_V.col(0) = v0;
-  m_V.col(0) /= m_V.col(0).norm();
+  LOG_VAR(A.rows());
+  LOG_VAR(A.cols());
+  m_V.col(0) = v0 / v0.norm();
   k_n_arnoldi(A, nev);
 }
 
@@ -191,28 +207,18 @@ void ArnoldiIteration<MatrixType>::k_n_arnoldi(const MatrixType & A,
     LOG(logERROR) << "insufficient memory allocated" << std::endl;
   }
 
-  for (int n = nbr_iterations; n < nbr_iterations + nev; ++n) {
-    EigenvectorType v = A * m_V.col(n);
+  int n = nbr_iterations;
+  for (; n < nbr_iterations + nev; ++n) {
+    EigenvalueType v = A * m_V.col(n);
     for (int j = 0; j < n + 1; ++j) {
-      m_H(j, n) = (m_V.col(j).adjoint() * v)(0, 0);
+      m_H(j, n) = m_V.col(j).dot(v);
       v -= m_H(j, n) * m_V.col(j);
     }
     m_H(n + 1, n) = v.norm();
     m_V.col(n + 1) = v / m_H(n + 1, n);
+    if (std::abs(m_H(n + 1, n)) < 1e-10) break;
   }
-
-  nbr_iterations += nev;
-
-  using eigenSolver = Eigen::ComplexEigenSolver<EigenvectorType>;
-  eigenSolver eigen_solver(H(), true);
-
-  auto eival = eigen_solver.eigenvalues();
-  auto eivec = eigen_solver.eigenvectors();
-
-  m_eival = eigen_solver.eigenvalues();
-  m_eivec = V() * eigen_solver.eigenvectors();
-  m_isInitialized = true;
-  m_eigenvectorsOk = true;
+  nbr_iterations = n;
 }
 
 template<typename MatrixType>
@@ -249,7 +255,8 @@ ArnoldiIteration<MatrixType>::transformed(ComplexScalar sigma) {
 
 template<typename MatrixType>
 const typename ArnoldiIteration<MatrixType>::EigenvectorType &
-ArnoldiIteration<MatrixType>::eigenvectors() const {
+ArnoldiIteration<MatrixType>::eigenvectors() {
+  compute_eival_if_needed();
   assert(m_isInitialized
          && "EigenSolver is not initialized.");
   assert(m_eigenvectorsOk
@@ -259,7 +266,8 @@ ArnoldiIteration<MatrixType>::eigenvectors() const {
 
 template<typename MatrixType>
 const typename ArnoldiIteration<MatrixType>::EigenvalueType &
-ArnoldiIteration<MatrixType>::eigenvalues() const {
+ArnoldiIteration<MatrixType>::eigenvalues() {
+  compute_eival_if_needed();
   assert(m_isInitialized && "EigenSolver is not initialized.");
   return m_eival;
 }

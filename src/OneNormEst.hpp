@@ -2,6 +2,7 @@
 #define ONENORMEST_HPP
 
 #include "Common.hpp"
+#include "MatrixWrappers.hpp"
 
 mat_t sign_round_up(const mat_t X);
 
@@ -45,40 +46,6 @@ void resample_column(int i, MatrixType & X) {
 bool close(double a, double b, double rtol = 1e-05, double atol = 1e-08);
 
 bool less_than_or_close(double a, double b);
-
-template<typename _MatrixType>
-struct PowerWrapper {
-  using MatrixType = typename _MatrixType::PlainObject;
-  
-  template<typename RHS_t>
-  auto apply_to(const RHS_t & RHS) const {
-    using ResultType = typename decltype(value * RHS)::PlainObject;
-    if (power == 0) return ResultType(RHS);
-    ResultType tmp = value * RHS;
-    for (int i = 1; i < power; ++i) tmp = value * tmp;
-    return tmp;
-  }
-
-  PowerWrapper<MatrixType> adjoint() const {
-    return PowerWrapper<MatrixType>{value.adjoint(), power};
-  }
-
-  Eigen::Index rows() const {
-    return value.rows();
-  }
-
-  Eigen::Index cols() const {
-    return value.cols();
-  }
-  
-  _MatrixType value;
-  int power;
-};
-
-template<typename MatrixType, typename T>
-auto operator*(const PowerWrapper<MatrixType> & lhs, const T & rhs) {
-  return lhs.apply_to(rhs);
-}
 
 /*
     This is Algorithm 2.2.
@@ -238,7 +205,7 @@ std::vector<int> in1d(const T1 & lhs, const T2 & rhs) {
 		   [&](int i1, int i2) {return dst[i1] < dst[i2];});
 
   std::vector<int> out;
-  for (int i = 0; i + 1 < y.size(); ++i) {
+  for (size_type i = 0; i + 1 < y.size(); ++i) {
   if ((y[i] < lhs.size())
 	&& (i + 1 < dst.size())
 	&& (dst[y[i]] == dst[y[i + 1]])) {

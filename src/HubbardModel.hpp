@@ -1,5 +1,8 @@
 #include "Common.hpp"
 
+#ifndef HUBBARDMODEL_HPP
+#define HUBBARDMODEL_HPP
+
 class HSpaceDistribution;
 
 /*
@@ -56,3 +59,4 @@ spmat_t Hubbard_light_matter_sp(int photon_dimension,
 				double hubbardU,
 				bool periodic,
 				const spmat_t & proj);
+#endif /* HUBBARDMODEL_HPP */

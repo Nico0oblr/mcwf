@@ -180,10 +180,6 @@ HSpaceDistribution DimerGroundState(double hopping, double hubbardU) {
 }
 
 mat_t HubbardProjector(int sites, int total_spins_up, int total_spins_down) {
-  std::cout << "sites: " << sites << std::endl;
-  std::cout << "total_spins_up: " << total_spins_up << std::endl;
-  std::cout << "total_spins_down: " << total_spins_down << std::endl;
-  
   int dimension = std::pow(4, sites);
   mat_t n_up_operator = sum_operator(HubbardOperators::n_up(), sites);
   mat_t n_down_operator = sum_operator(HubbardOperators::n_down(), sites);
@@ -204,16 +200,10 @@ mat_t HubbardProjector(int sites, int total_spins_up, int total_spins_down) {
     projection.row(i) = vec_t::Unit(dimension, projection_basis[i]);
   }
 
-  std::cout << "projector dimension" << std::endl;
-  print_matrix_dim(projection);
   return projection;
 }
 
 spmat_t HubbardProjector_sp(int sites, int total_spins_up, int total_spins_down) {
-  std::cout << "sites: " << sites << std::endl;
-  std::cout << "total_spins_up: " << total_spins_up << std::endl;
-  std::cout << "total_spins_down: " << total_spins_down << std::endl;
-  
   int dimension = std::pow(4, sites);
   spmat_t n_up_operator = sum_operator_sp(HubbardOperators::n_up(), sites);
   spmat_t n_down_operator = sum_operator_sp(HubbardOperators::n_down(), sites);
@@ -238,7 +228,6 @@ spmat_t HubbardProjector_sp(int sites, int total_spins_up, int total_spins_down)
   }
 
   projection.setFromTriplets(tripletList.begin(), tripletList.end());
-  print_matrix_dim(projection);
   return projection;
 }
 
