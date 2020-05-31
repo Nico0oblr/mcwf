@@ -479,6 +479,8 @@ PYBIND11_MODULE(mcwf, m) {
     m.def("exp_krylov", &exp_krylov);
     m.def("exp_krylov_alt", &exp_krylov_alt);
     m.def("kroneckerApply", &kroneckerApply);
+    m.def("kroneckerApply_id", &kroneckerApply_id);
+    m.def("kroneckerApply_LHS", &kroneckerApply_LHS);
     m.def("kroneckerApplyLazy", &kroneckerApply);
 
     py::class_<LinearOperator<spmat_t>>(m, "LinearOperator")
@@ -488,6 +490,16 @@ PYBIND11_MODULE(mcwf, m) {
       .def("rows", &LinearOperator<spmat_t>::rows)
       .def("mult_by_scalar", &LinearOperator<spmat_t>::mult_by_scalar)
       .def(py::self + py::self)
+      .def(py::self * vec_t())
+      .def("__rmul__", [](const LinearOperator<spmat_t> & a,
+			  const vec_t & b) -> vec_t {
+			 return a.applied_to(b.transpose());
+			 // return b.transpose() * a;
+		       }, py::is_operator())
+      .def("__mul__", [](const LinearOperator<spmat_t> & a,
+			 const mat_t & b) -> mat_t {
+			return a * b;
+		      }, py::is_operator())
       .def("__mul__", [](const LinearOperator<spmat_t> & a,
 			 const std::complex<double> & b) {
 			auto copy = a.clone();

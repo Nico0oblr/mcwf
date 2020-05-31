@@ -50,8 +50,8 @@ Hubbard_light_matter_Operator(int photon_dimension,
 void test_function(const LinearOperator<spmat_t> & lhs,
 		    const mat_t & rhs,
 		    const vec_t & vec) {
-  vec * lhs;
-  lhs * vec;
-  lhs * rhs;
-  rhs * lhs; 
+  vec_t A = (vec * lhs).eval();
+  vec_t B = lhs * vec;
+  mat_t C = lhs * rhs;
+  mat_t D = rhs * lhs; 
 }
