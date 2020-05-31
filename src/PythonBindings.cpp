@@ -196,7 +196,10 @@ PYBIND11_MODULE(mcwf, m) {
       .def(py::pickle
 	   (
 	    [](const MCWFObservableRecorder &p) { // __getstate__
-	      return py::make_tuple(p.m_observables,
+	      std::vector<calc_mat_t> evaluated_obs;
+	      for (const auto & obs : p.m_observables)
+		evaluated_obs.push_back(obs->eval());
+	      return py::make_tuple(evaluated_obs,
 				    p.n_runs(),
 				    p.m_records);
 	    },
@@ -217,7 +220,10 @@ PYBIND11_MODULE(mcwf, m) {
       .def(py::pickle
 	   (
 	    [](const StateObservableRecorder &p) { // __getstate__
-	      return py::make_tuple(p.m_observables,
+	      std::vector<calc_mat_t> evaluated_obs;
+	      for (const auto & obs : p.m_observables)
+		evaluated_obs.push_back(obs->eval());
+	      return py::make_tuple(evaluated_obs,
 				    p.m_records);
 	    },
 	    [](py::tuple t) { // __setstate__
@@ -236,7 +242,10 @@ PYBIND11_MODULE(mcwf, m) {
       .def(py::pickle
 	   (
 	    [](const DmatObservableRecorder &p) { // __getstate__
-	      return py::make_tuple(p.m_observables,
+	      std::vector<calc_mat_t> evaluated_obs;
+	      for (const auto & obs : p.m_observables)
+		evaluated_obs.push_back(obs->eval());
+	      return py::make_tuple(evaluated_obs,
 				    p.m_records);
 	    },
 	    [](py::tuple t) { // __setstate__
@@ -473,6 +482,12 @@ PYBIND11_MODULE(mcwf, m) {
     m.def("kroneckerApplyLazy", &kroneckerApply);
 
     py::class_<LinearOperator<spmat_t>>(m, "LinearOperator")
+      .def("apply_to", &LinearOperator<spmat_t>::apply_to)
+      .def("applied_to", &LinearOperator<spmat_t>::applied_to)
+      .def("eval", &LinearOperator<spmat_t>::eval)
+      .def("rows", &LinearOperator<spmat_t>::rows)
+      .def("mult_by_scalar", &LinearOperator<spmat_t>::mult_by_scalar)
+      .def(py::self + py::self)
       .def("__mul__", [](const LinearOperator<spmat_t> & a,
 			 const std::complex<double> & b) {
 			auto copy = a.clone();
@@ -481,11 +496,15 @@ PYBIND11_MODULE(mcwf, m) {
 		      }, py::is_operator())
       .def("__rmul__", [](const LinearOperator<spmat_t> & a,
 			  const std::complex<double> & b) {
-			auto copy = a.clone();
-			copy->mult_by_scalar(b);
-			return copy;
-		      }, py::is_operator());
+			 auto copy = a.clone();
+			 copy->mult_by_scalar(b);
+			 return copy;
+		       }, py::is_operator());
     /*LinearOperator*/
     m.def("Hubbard_light_matter_Operator", &Hubbard_light_matter_Operator);
+    m.def("operatorize", &operatorize<spmat_t>);
+    m.def("kroneckerOperator", &kroneckerOperator<spmat_t>);
+    m.def("kroneckerOperator_IDRHS", &kroneckerOperator_IDRHS<spmat_t>);
+    m.def("kroneckerOperator_IDLHS", &kroneckerOperator_IDLHS<spmat_t>);
     declare_arnoldi<LinearOperator<spmat_t>>(m, "Operator");
 }

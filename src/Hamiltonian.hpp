@@ -176,11 +176,6 @@ fourth_oder_timeordered_exponential(const std::function<MatrixType(double)> & H,
   MatrixType H2 = H(t + (0.5 + std::sqrt(3.0) / 6.0) * dt);
   MatrixType fac1 = -1.0i * (c1 * H1 + c2 * H2) * dt;
   MatrixType fac2 = -1.0i * (c2 * H1 + c1 * H2) * dt;
-  // std::cout << "fac1 norm: " << fac1.norm() << std::endl;
-  // std::cout << "fac2 norm: " << fac2.norm() << std::endl;
-
-  // vec_t apply_fac2 = apply_matrix_exponential_taylor(fac2, state, 4);
-  // vec_t apply_fac1 = apply_matrix_exponential_taylor(fac1, apply_fac2, 4);
   vec_t apply_fac2 = expm(fac2) * state;
   vec_t apply_fac1 = expm(fac1) * apply_fac2;
   return apply_fac1;

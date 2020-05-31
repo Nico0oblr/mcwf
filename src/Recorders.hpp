@@ -2,7 +2,10 @@
 #define RECORDERS_HPP
 
 #include "Common.hpp"
+#include "LinearOperator.hpp"
 #include <fstream>
+
+using lo_ptr = std::unique_ptr<LinearOperator<calc_mat_t>>;
 
 /*
   Mixin host for all Recorders
@@ -17,9 +20,10 @@ public:
 /*
   Abstraction of <observable>.
 */
-double evaluate_impl(const vec_t & state, const calc_mat_t & observable);
+double evaluate_impl(const vec_t & state,
+		     const LinearOperator<calc_mat_t> & observable);
 double evaluate_impl(const calc_mat_t & density_matrix,
-		     const calc_mat_t & observable);
+		     const LinearOperator<calc_mat_t> & observable);
 
 /*Adds the recording of a vector of observables*/
 template<typename Base>
@@ -29,7 +33,7 @@ public:
     Base::record(info);
     assert(m_observables.size() == m_records.size());
     for (size_type i = 0; i < m_observables.size(); ++i) {
-      m_records[i].push_back(evaluate_impl(info, m_observables[i]));
+      m_records[i].push_back(evaluate_impl(info, *m_observables[i]));
     }
   }
 
@@ -43,10 +47,21 @@ public:
   }
   
   ObservableVectorMixin(const std::vector<calc_mat_t> & observables)
-    :Base(), m_observables(observables), m_records(m_observables.size()) {}
+    :Base(), m_observables(), m_records(m_observables.size()) {
+    for (const calc_mat_t & mat: observables) {
+      m_observables.push_back(BareLinearOperator<calc_mat_t>(mat).clone());
+    }
+  }
+
+  ObservableVectorMixin(const std::vector<lo_ptr> & observables)
+    :Base(), m_observables(), m_records(m_observables.size()) {
+    for (const lo_ptr & mat: observables) {
+      m_observables.push_back(mat->clone());
+    }
+  }
     
   // protected:
-  std::vector<calc_mat_t> m_observables;
+  std::vector<lo_ptr> m_observables;
   std::vector<std::vector<double>> m_records;
 };
 
@@ -132,7 +147,7 @@ public:
     Base::record(state, run_index, time_step);
     assert(m_observables.size() == m_records.size());
     for (size_type i = 0; i < m_observables.size(); ++i) {
-      m_records[i][run_index].push_back(evaluate_impl(state, m_observables[i]));
+      m_records[i][run_index].push_back(evaluate_impl(state, *m_observables[i]));
     }
   }
   
@@ -161,17 +176,32 @@ public:
   size_type size() const {
     return m_records.size();
   }
-  
+
+
   MCWFObservableVectorMixin(const std::vector<calc_mat_t> & observables,
+			int runs)
+    :Base(runs), m_observables(), m_records(m_observables.size()) {
+    for (const calc_mat_t & mat: observables) {
+      m_observables.push_back(BareLinearOperator<calc_mat_t>(mat).clone());
+    }
+    for (size_type i = 0; i < observables.size(); ++i){
+      m_records[i].resize(runs);
+    }
+  }
+
+  MCWFObservableVectorMixin(const std::vector<lo_ptr> & observables,
 			    int runs)
-    :Base(runs), m_observables(observables), m_records(observables.size()) {
+    :Base(runs), m_observables(), m_records(m_observables.size()) {
+    for (const lo_ptr & mat: observables) {
+      m_observables.push_back(mat->clone());
+    }
     for (size_type i = 0; i < observables.size(); ++i){
       m_records[i].resize(runs);
     }
   }
 
   // protected:
-  std::vector<calc_mat_t> m_observables;
+  std::vector<lo_ptr> m_observables;
   std::vector<std::vector<std::vector<double>>> m_records;
 };
 

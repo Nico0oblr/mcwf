@@ -46,3 +46,12 @@ Hubbard_light_matter_Operator(int photon_dimension,
     + kroneckerOperator(e_iA_adj, hopping_terms_adj)
     + kroneckerOperator_IDLHS(onsite_terms, photon_dimension);
 }
+
+void test_function(const LinearOperator<spmat_t> & lhs,
+		    const mat_t & rhs,
+		    const vec_t & vec) {
+  vec * lhs;
+  lhs * vec;
+  lhs * rhs;
+  rhs * lhs; 
+}
