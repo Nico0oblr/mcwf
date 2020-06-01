@@ -129,5 +129,7 @@ struct CavityLindbladian : public Lindbladian {
   
   CavityHamiltonianV2 & hamiltonian_expl();
   
+  ~CavityLindbladian() override;
+  
   CavityHamiltonianV2 mcwf_hamiltonian;
 };

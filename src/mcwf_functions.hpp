@@ -5,7 +5,7 @@
 #include "Hamiltonian.hpp"
 #include "Recorders.hpp"
 
-class Lindbladian;
+struct Lindbladian;
 class HSpaceDistribution;
 
 vec_t jump_process(const vec_t & state,

@@ -3,14 +3,20 @@
 
 #include "Common.hpp"
 #include "Hamiltonian.hpp"
+#include "LinearOperator.hpp"
 
 calc_mat_t lindblad_term(const std::vector<calc_mat_t> & lindblad_operators,
 			 const std::vector<scalar_t> & lindblad_amplitudes);
 
+lo_ptr lindblad_term(const std::vector<lo_ptr> & lindblad_operators,
+		     const std::vector<scalar_t> & lindblad_amplitudes);
+
 class DrivenCavityHamiltonian {
 public:
-  calc_mat_t operator()(double time) const {
-    return time_indep + std::sin(laser_frequency * time) * time_dep;
+  lo_ptr operator()(double time) const {
+    return scale_rhs_and_add(*time_indep, *time_dep,
+			     std::sin(laser_frequency * time));
+    // return time_indep + std::sin(laser_frequency * time) * time_dep;
   }
 
   DrivenCavityHamiltonian(double cavity_frequency,
@@ -22,18 +28,21 @@ public:
     calc_mat_t A = annihilationOperator_sp(dimension);
     calc_mat_t A_t = creationOperator_sp(dimension);
     calc_mat_t n = numberOperator_sp(dimension);
-    time_indep = cavity_frequency * n;
-    time_dep = (A + A_t) * laser_amplitude;
-    time_indep = kroneckerProduct(time_indep,
-				  calc_mat_t::Identity(elec_dim, elec_dim)).eval();
-    time_dep = kroneckerProduct(time_dep,
-				calc_mat_t::Identity(elec_dim, elec_dim)).eval();
+    calc_mat_t _time_indep = cavity_frequency * n;
+    calc_mat_t _time_dep = (A + A_t) * laser_amplitude;
+    time_indep = kroneckerOperator_IDRHS(_time_indep, elec_dim);
+    time_dep = kroneckerOperator_IDRHS(_time_dep, elec_dim);
   }
+
+  DrivenCavityHamiltonian(const DrivenCavityHamiltonian & other)
+    :laser_frequency(other.laser_frequency),
+     time_indep(other.time_indep->clone()),
+     time_dep(other.time_dep->clone()) {}
 
 private:
   double laser_frequency;
-  calc_mat_t time_indep;
-  calc_mat_t time_dep;
+  lo_ptr time_indep;
+  lo_ptr time_dep;
 };
 
 struct Lindbladian {
@@ -44,17 +53,19 @@ struct Lindbladian {
 
   void add_subsystem(const calc_mat_t sub_hamiltonian);
 
-  void calculate_nh_term();
 
   calc_mat_t operator()(double time, const calc_mat_t & density_matrix) const;
 
   std::unique_ptr<Hamiltonian<calc_mat_t>> superoperator() const;
   
   std::unique_ptr<Hamiltonian<calc_mat_t>> m_system_hamiltonian;
-  std::vector<calc_mat_t> m_lindblad_operators;
+  std::vector<lo_ptr> m_lindblad_operators;
   std::vector<scalar_t> m_lindblad_amplitudes;
-  calc_mat_t m_nh_term;
 
+  Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian,
+	      const std::vector<lo_ptr> & lindblad_operators,
+	      const std::vector<scalar_t> & lindblad_amplitudes);
+  
   Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian,
 	      const std::vector<calc_mat_t> & lindblad_operators,
 	      const std::vector<scalar_t> & lindblad_amplitudes);
@@ -68,6 +79,8 @@ struct Lindbladian {
 	      const Eigen::MatrixXd & lindblad_matrix);
 
   Lindbladian(const Lindbladian & other);
+
+  virtual ~Lindbladian();
 
 protected:
   Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian);

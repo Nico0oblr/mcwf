@@ -5,8 +5,6 @@
 #include "LinearOperator.hpp"
 #include <fstream>
 
-using lo_ptr = std::unique_ptr<LinearOperator<calc_mat_t>>;
-
 /*
   Mixin host for all Recorders
 */
@@ -15,6 +13,12 @@ class RecorderHost {
 public:
   using InformationType = _InformationType;
   virtual void record(const InformationType & /*state*/) {}
+  RecorderHost() = default;
+  virtual ~RecorderHost() = default;
+  
+protected:
+  RecorderHost(const RecorderHost &) = default;
+  RecorderHost& operator=(const RecorderHost &) = default;
 };
 
 /*
@@ -47,19 +51,27 @@ public:
   }
   
   ObservableVectorMixin(const std::vector<calc_mat_t> & observables)
-    :Base(), m_observables(), m_records(m_observables.size()) {
+    :Base(), m_observables(), m_records(observables.size()) {
     for (const calc_mat_t & mat: observables) {
       m_observables.push_back(BareLinearOperator<calc_mat_t>(mat).clone());
     }
   }
 
   ObservableVectorMixin(const std::vector<lo_ptr> & observables)
-    :Base(), m_observables(), m_records(m_observables.size()) {
+    :Base(), m_observables(), m_records(observables.size()) {
     for (const lo_ptr & mat: observables) {
       m_observables.push_back(mat->clone());
     }
   }
-    
+
+  virtual ~ObservableVectorMixin() {}
+
+  ObservableVectorMixin(const ObservableVectorMixin<Base> & other)
+    :Base(), m_observables(), m_records(other.m_records) {
+    for (const auto & x : other.m_observables)
+      m_observables.push_back(x->clone());
+  }
+  
   // protected:
   std::vector<lo_ptr> m_observables;
   std::vector<std::vector<double>> m_records;
@@ -91,6 +103,9 @@ public:
 
   DirectDensityObserverMixin()
     : Base(), m_density_matrices() {}
+
+
+  virtual ~DirectDensityObserverMixin() {}
   
 private:
   std::vector<calc_mat_t> m_density_matrices;
@@ -115,6 +130,8 @@ public:
     write(output);
     output.close();
   }
+
+  virtual ~ExpvalWriterMixin() {}
 };
 
 /*Mixes capabilities for MCWF run into the recorder*/
@@ -130,7 +147,13 @@ public:
 
   MCWFRecorder(size_type runs)
     :m_runs(runs) {}
-
+  
+  virtual ~MCWFRecorder() = default;
+  
+protected:
+  MCWFRecorder(const MCWFRecorder &) = default;
+  MCWFRecorder& operator=(const MCWFRecorder &) = default;
+  
 private:
   size_type m_runs;
 };
@@ -180,7 +203,7 @@ public:
 
   MCWFObservableVectorMixin(const std::vector<calc_mat_t> & observables,
 			int runs)
-    :Base(runs), m_observables(), m_records(m_observables.size()) {
+    :Base(runs), m_observables(), m_records(observables.size()) {
     for (const calc_mat_t & mat: observables) {
       m_observables.push_back(BareLinearOperator<calc_mat_t>(mat).clone());
     }
@@ -191,13 +214,23 @@ public:
 
   MCWFObservableVectorMixin(const std::vector<lo_ptr> & observables,
 			    int runs)
-    :Base(runs), m_observables(), m_records(m_observables.size()) {
+    :Base(runs), m_observables(), m_records(observables.size()) {
     for (const lo_ptr & mat: observables) {
       m_observables.push_back(mat->clone());
     }
     for (size_type i = 0; i < observables.size(); ++i){
       m_records[i].resize(runs);
     }
+  }
+
+  // MCWFObservableVectorMixin(const MCWFObservableVectorMixin<Base> &) = delete;
+  // MCWFObservableVectorMixin& operator=(const MCWFObservableVectorMixin<Base>&) = delete;
+  virtual ~MCWFObservableVectorMixin() override {}
+  
+  MCWFObservableVectorMixin(const MCWFObservableVectorMixin<Base> & other)
+    :Base(other.n_runs()), m_observables(), m_records(other.m_records) {
+    for (const auto & x : other.m_observables)
+      m_observables.push_back(x->clone());
   }
 
   // protected:
@@ -239,6 +272,8 @@ public:
 
   MCWFDensityObserverMixin(int runs)
     : Base(runs), running_index(0), m_running_average() {}
+
+  virtual ~MCWFDensityObserverMixin() {}
   
 private:
   int running_index;

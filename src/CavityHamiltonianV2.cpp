@@ -221,6 +221,8 @@ vec_t CavityHamiltonianV2::BCH_propagate(double t, double dt,
   tmp = m_Y.exp_apply(dct, tmp);
   tmp = m_e_X * tmp;*/
 
+  LOG_VAR(m_e_X.cols());
+  LOG_VAR(m_e_X.rows());
   mat_t temp = mat_t::Identity(m_Y().rows(), m_Y().cols());
 
   if (m_order > 0) temp *= m_Y.exp(dct);
@@ -267,7 +269,8 @@ CavityLindbladian::CavityLindbladian(double frequency, double laser_frequency,
   calc_mat_t A_t = creationOperator_sp(dimension);
   A = kroneckerProduct(A, calc_mat_t::Identity(elec_dim, elec_dim)).eval();
   A_t = kroneckerProduct(A_t, calc_mat_t::Identity(elec_dim, elec_dim)).eval();
-  Base::m_lindblad_operators = {A, A_t};
+  Base::m_lindblad_operators.push_back(operatorize(A));
+  Base::m_lindblad_operators.push_back(operatorize(A_t));
   Base::m_lindblad_amplitudes = {gamma * (1.0 + n_b), gamma * n_b};
 }
      
@@ -282,3 +285,5 @@ const CavityHamiltonianV2 & CavityLindbladian::hamiltonian_expl() const {
 CavityHamiltonianV2 & CavityLindbladian::hamiltonian_expl() {
   return mcwf_hamiltonian;
 }
+
+CavityLindbladian::~CavityLindbladian() {}

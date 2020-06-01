@@ -29,7 +29,7 @@ template<typename vector_type>
 int linear_search(const vector_type & probabilities) {
   double eta = dis(mt_rand);
   double cumulative = 0.0;
-  for (int i = 0; i < probabilities.size(); ++i) {
+  for (int i = 0; i < static_cast<int>(probabilities.size()); ++i) {
     cumulative += probabilities[i];
     if (eta <= cumulative) {
       return i;

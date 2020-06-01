@@ -7,7 +7,7 @@
 #include "Recorders.hpp"
 
 class HSpaceDistribution;
-class Lindbladian;
+struct Lindbladian;
 
 void direct_closed_observable(Hamiltonian<calc_mat_t> & system,
 			      const vec_t & cstate,

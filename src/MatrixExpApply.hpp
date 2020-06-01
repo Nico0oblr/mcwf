@@ -2,10 +2,8 @@
 #define MATRIXEXPAPPLY_HPP
 
 #include "OneNormEst.hpp"
+#include "LinearOperator.hpp"
 #include <unordered_map>
-
-double _exact_inf_norm(const spmat_t & A);
-
 
 static std::map<int, double>
 _theta = {{1, 2.29e-16},
@@ -58,7 +56,7 @@ _theta = {{1, 2.29e-16},
 */
 template<typename MatrixType>
 class LazyOperatorNormInfo {
-  const MatrixType * m_A;
+  const LinearOperator<MatrixType> * m_A;
   double m_A_1_norm;
   int m_ell;
   int m_scale;
@@ -77,16 +75,20 @@ public:
     scale : int, optional
     If specified, return the norms of scale*A instead of A.
   */
-  LazyOperatorNormInfo(const MatrixType & A,
+  LazyOperatorNormInfo(const LinearOperator<MatrixType> & A,
 		       double A_1_norm = -1.0,
 		       int ell = 2,
 		       int scale = 1)
     :m_A(&A), m_A_1_norm(A_1_norm), m_ell(ell), m_scale(scale), m_d() {}
 
+  LazyOperatorNormInfo(const LazyOperatorNormInfo & other)
+    :m_A(other.m_A), m_A_1_norm(other.m_A_1_norm),
+     m_ell(other.m_ell), m_scale(other.m_scale), m_d(other.m_d) {}
+  
   void set_scale(int scale) {m_scale = scale;}
 
   double onenorm() {
-    if(m_A_1_norm < 0) m_A_1_norm = m_A->oneNorm();
+    if(m_A_1_norm < 0) m_A_1_norm = onenormest(*m_A);
     return m_scale * m_A_1_norm;
   }
   
@@ -139,7 +141,7 @@ long _compute_cost_div_m(int m, int p, LazyOperatorNormInfo<spmat_t> & norm_info
         Information about norms of certain linear operators of interest.
     n0 : int
         Number of columns in the _expm_multiply_* B matrix.
-    tol : float
+    tolerance : float
         Expected to be
         :math:`2^{-24}` for single precision or
         :math:`2^{-53}` for double precision.
@@ -162,7 +164,7 @@ long _compute_cost_div_m(int m, int p, LazyOperatorNormInfo<spmat_t> & norm_info
     and the definition of equation (3.12).
   */
 std::pair<int, long> _fragment_3_1(LazyOperatorNormInfo<spmat_t> & norm_info,
-				  int n0, double tol, int m_max = 55,
+				  int n0, double tolerance, int m_max = 55,
 				  int ell = 2);
 
 /*
@@ -208,13 +210,16 @@ bool _condition_3_13(double A_1_norm, int n0, int m_max, int ell);
   -----
   This is algorithm (3.2) in Al-Mohy and Higham (2011).
 */
-spmat_t expm_multiply_simple(const spmat_t & A, const vec_t & B,
-			     double t = 1.0);
+vec_t expm_multiply_simple(const LinearOperator<spmat_t> & A, const vec_t & B,
+			   double t = 1.0);
 
-spmat_t _expm_multiply_simple_core(const spmat_t & A,
-				   const vec_t & B,
-				   double t, std::complex<double> mu,
-				   int m_star, long s,
-				   double tol);
+vec_t expm_multiply_simple(const spmat_t & A, const vec_t & B,
+			   double t = 1.0);
+
+vec_t _expm_multiply_simple_core(const LinearOperator<spmat_t> & A,
+				 const vec_t & B,
+				 double t, std::complex<double> mu,
+				 int m_star, long s,
+				 double tolerance);
 
 #endif /* MATRIXEXPAPPLY_HPP */

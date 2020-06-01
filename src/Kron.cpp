@@ -1,4 +1,4 @@
-#include "MatrixWrappers.hpp"
+#include "Kron.hpp"
 
 vec_t kroneckerApply(const spmat_t & A,
 		     const spmat_t & B,
@@ -6,11 +6,6 @@ vec_t kroneckerApply(const spmat_t & A,
   assert(vec.size() == A.cols() * B.cols()
 	 && "Vector must have dimA * dimB in tensor space");
   mat_t Bvec = B * Eigen::Map<const mat_t>(vec.data(), B.cols(), A.cols());
-  //mat_t ABvec = B * Eigen::Map<const mat_t>(vec.data(), B.cols(), A.cols()) * A;
-  // return Eigen::Map<vec_t>(ABvec.data(), vec.size());
-  mat_t ABvec = (Bvec * A).transpose();
-  return Eigen::Map<vec_t>(ABvec.data(), vec.size());
-  
   vec_t out = vec_t::Zero(vec.size());
   for (int k = 0; k < A.outerSize(); ++k) {
     for (spmat_t::InnerIterator it(A, k); it; ++it) {
@@ -18,7 +13,6 @@ vec_t kroneckerApply(const spmat_t & A,
       int j = it.col();
       out(Eigen::seq(i * B.cols(), (i + 1) *  B.cols() - 1))
 	+= it.value() * Bvec.col(j);
-      // (coli) out_i = sum_j A_{ij} * b_j (colj)
     }
   }
 

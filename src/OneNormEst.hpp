@@ -2,7 +2,7 @@
 #define ONENORMEST_HPP
 
 #include "Common.hpp"
-#include "MatrixWrappers.hpp"
+#include "LinearOperator.hpp"
 
 mat_t sign_round_up(const mat_t X);
 
@@ -18,7 +18,7 @@ bool vectors_parallel(const vector_type & LHS,
 		      const vector_type & RHS) {
   assert(LHS.size() == RHS.size());
   // TODO: Added abs to make compiler happy
-  return (std::abs(LHS.dot(RHS)) == LHS.size());
+  return (std::abs(std::abs(LHS.dot(RHS)) - LHS.size()) < tol);
 }
 
 // LOL at the name
@@ -343,7 +343,7 @@ double _onenormest_core(const M1 & A, const M2 & AT, int t, int itmax) {
     Eigen::VectorXd h = max_abs_rowwise(Z);
     Z.resize(0, 0);
     // (4)
-    if ((k >= 2) && (h.maxCoeff() == h[ind_best])) break;
+    if ((k >= 2) && std::abs(h.maxCoeff() - h[ind_best]) < tol) break;
     // "Sort h so that h_first >= ... >= h_last
     // and re-order ind correspondingly."
     //
@@ -366,7 +366,9 @@ double _onenormest_core(const M1 & A, const M2 & AT, int t, int itmax) {
       // (5)
       // Break if the most promising t vectors have been visited already.
       int mt = std::min(t, static_cast<int>(ind.size() - 1));
-      if (in1d(ind(Eigen::seq(0, mt)), ind_hist).size() == mt)  break;
+      assert(mt >= 0);
+      if (in1d(ind(Eigen::seq(0, mt)), ind_hist).size()
+	  == static_cast<size_type>(mt))  break;
       // Put the most promising unvisited vectors at the front of the list
       // and put the visited vectors at the end of the list.
       // Preserve the order of the indices induced by the ordering of h.
@@ -393,11 +395,27 @@ double _onenormest_core(const M1 & A, const M2 & AT, int t, int itmax) {
 }
 
 template<typename MatrixType>
-double onenormest(const MatrixType & A, int t = 2, int itmax = 5) {
-  return _onenormest_core(A, A.adjoint(), t, itmax);
+double onenormest(const Eigen::EigenBase<MatrixType> & A,
+		  int t = 2, int itmax = 5) {
+  return _onenormest_core(A.derived(), A.derived().adjoint(), t, itmax);
 }
 
-double onenormest_matrix_power(const spmat_t A, int power,
-			       int t = 2, int itmax = 5);
+template<typename MatrixType>
+double onenormest(const LinearOperator<MatrixType> & A,
+		  int t = 2, int itmax = 5) {
+  return _onenormest_core(A, *(A.adjoint()), t, itmax);
+}
+
+template<typename MatrixType>
+double onenormest_matrix_power(const Eigen::EigenBase<MatrixType> & A, int power,
+			       int t = 2, int itmax = 5) {
+  return onenormest(*powerOperator(operatorize(A.derived()), power), t, itmax);
+}
+
+template<typename MatrixType>
+double onenormest_matrix_power(const LinearOperator<MatrixType> & A, int power,
+			       int t = 2, int itmax = 5) {
+  return onenormest(*powerOperator(A, power), t, itmax);
+}
 
 #endif /* ONENORMEST_HPP */

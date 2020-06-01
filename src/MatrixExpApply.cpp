@@ -1,10 +1,6 @@
 #include "MatrixExpApply.hpp"
 
 
-double _exact_inf_norm(const spmat_t & A) {
-  return A.infNorm();
-}
-
 long _compute_cost_div_m(int m, int p,
 			 LazyOperatorNormInfo<spmat_t> & norm_info) {
   return static_cast<long>(std::ceil(norm_info.alpha(p) / _theta.at(m)) + 0.5);
@@ -24,9 +20,9 @@ int compute_p_max(int m_max) {
 }
 
 std::pair<int, long> _fragment_3_1(LazyOperatorNormInfo<spmat_t> & norm_info,
-				   int n0, double tol, int m_max,
+				   int n0, double tolerance, int m_max,
 				   int ell) {
-  assert(tol == std::pow(2.0, -53.0));
+  assert(tolerance == std::pow(2.0, -53.0));
   assert(ell > 0 && "expected ell to be a positive integer");
   int best_m = -1;
   long best_s = -1;
@@ -73,40 +69,41 @@ bool _condition_3_13(double A_1_norm, int n0, int m_max, int ell) {
   return A_1_norm <= a * b;
 }
 
-spmat_t expm_multiply_simple(const spmat_t & _A, const vec_t & B,
-			     double t) {
-  spmat_t A = _A;
-  assert(A.cols() == B.rows()
+vec_t expm_multiply_simple(const LinearOperator<spmat_t> & _A,
+			   const vec_t & B,
+			   double t) {
+  lo_ptr A = _A.clone();
+  assert(A->cols() == B.rows()
 	 && "the matrices A and B have incompatible shapes");
-  spmat_t ident = spmat_t::Identity(A.rows(), A.cols());
-  int n = A.rows();
+  spmat_t ident = spmat_t::Identity(A->rows(), A->cols());
+  int n = A->rows();
   int n0 = B.cols();
   double u_d = std::pow(2.0, -53.0);
-  double tol = u_d;
-  std::complex<double> mu = A.trace() / static_cast<double>(n);
-  A = A - mu * ident;
-  double A_1_norm = A.oneNorm();
-  if (t * A_1_norm == 0) {
+  double tolerance = u_d;
+  std::complex<double> mu = 0.0;//A->eval().trace() / static_cast<double>(n);
+  // A = A - operatorize(spmat_t(mu * ident));
+  double A_1_norm = onenormest(*A);
+  if (std::abs(t * A_1_norm) < tol) {
     int m_star = 0;
     long s = 1;
-    return _expm_multiply_simple_core(A, B, t, mu, m_star, s, tol);
+    return _expm_multiply_simple_core(*A, B, t, mu, m_star, s, tolerance);
   } else {
     int ell = 2;
-    LazyOperatorNormInfo<spmat_t> norm_info(t * A, t * A_1_norm, ell);
-    auto tmp = _fragment_3_1(norm_info, n0, tol, 55, ell);
+    LazyOperatorNormInfo<spmat_t> norm_info(*(t * A), t * A_1_norm, ell);
+    auto tmp = _fragment_3_1(norm_info, n0, tolerance, 55, ell);
     int m_star = tmp.first;
     long s = tmp.second;
-    return _expm_multiply_simple_core(A, B, t, mu, m_star, s, tol);
+    return _expm_multiply_simple_core(*A, B, t, mu, m_star, s, tolerance);
   }
 }
 
-spmat_t _expm_multiply_simple_core(const spmat_t & A,
-				   const vec_t & _B,
-				   double t, std::complex<double> mu,
-				   int m_star, long s,
-				   double tol) {
+vec_t _expm_multiply_simple_core(const LinearOperator<spmat_t> & A,
+				 const vec_t & _B,
+				 double t, std::complex<double> mu,
+				 int m_star, long s,
+				 double tolerance) {
   int matmuls = 0;
-  assert(tol == std::pow(2.0, -53.0));
+  assert(tolerance == std::pow(2.0, -53.0));
   vec_t B = _B;
   vec_t F = B;
   std::complex<double> eta = std::exp(t * mu / static_cast<double>(s));
@@ -114,11 +111,11 @@ spmat_t _expm_multiply_simple_core(const spmat_t & A,
     double c1 = B.lpNorm<Eigen::Infinity>();
     for (int j = 0; j < m_star; ++j) {
       double coeff = t / static_cast<double>(s * (j + 1));
-      B = coeff * A * B;
+      B = coeff * (A * B);
       ++matmuls;
       double c2 = B.lpNorm<Eigen::Infinity>();
       F = F + B;
-      if (c1 + c2 <= tol * F.lpNorm<Eigen::Infinity>()) break;
+      if (c1 + c2 <= tolerance * F.lpNorm<Eigen::Infinity>()) break;
       c1 = c2;
     }
 
@@ -128,4 +125,9 @@ spmat_t _expm_multiply_simple_core(const spmat_t & A,
 
   LOG_VAR(matmuls);
   return F;
+}
+
+vec_t expm_multiply_simple(const spmat_t & A, const vec_t & B,
+			   double t) {
+  return expm_multiply_simple(*operatorize(A), B, t);
 }

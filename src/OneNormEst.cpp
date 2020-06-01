@@ -79,8 +79,3 @@ std::vector<int> invert_indexer(std::vector<int> indexer, int size) {
 		      indexer.begin(), indexer.end(), std::back_inserter(out));
   return out;
 }
-
-double onenormest_matrix_power(const spmat_t A, int power,
-			       int t, int itmax) {
-  return onenormest(PowerWrapper<spmat_t>{A, power}, t, itmax);
-}

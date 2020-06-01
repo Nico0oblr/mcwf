@@ -15,13 +15,11 @@
 
 #include "HubbardModel.hpp"
 #include "toy_spin_model.hpp"
-#include "tests.hpp"
 #include "Hamiltonian.hpp"
 #include "Recorders.hpp"
 #include "LightMatterSystem.hpp"
 
 int main(int argc, char ** argv) {
-  run_tests();
   std::cout << "Starting program" << std::endl;
   /*System creation*/
   YamlOrCMD parser(argv, argc, "config.yaml");

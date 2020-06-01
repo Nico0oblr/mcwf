@@ -3,7 +3,7 @@
 
 #include "Common.hpp"
 #include "Recorders.hpp"
-class Lindbladian;
+struct Lindbladian;
 class HSpaceDistribution;
 
 void observable_direct(const Lindbladian & system,

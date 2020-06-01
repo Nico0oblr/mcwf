@@ -15,6 +15,21 @@ calc_mat_t lindblad_term(const std::vector<calc_mat_t> & lindblad_operators,
   return nh_term;
 }
 
+lo_ptr lindblad_term(const std::vector<lo_ptr> & lindblad_operators,
+		     const std::vector<scalar_t> & lindblad_amplitudes) {
+  lo_ptr nh_term = lindblad_operators[0]->adjoint()
+    * lindblad_operators[0]
+    * lindblad_amplitudes[0];
+  for (size_type i = 1; i < lindblad_operators.size(); ++i) {
+    nh_term = nh_term
+      + lindblad_operators[i]->adjoint()
+      * lindblad_operators[i]
+      * lindblad_amplitudes[i];
+  }
+  return nh_term;
+}
+
+
 scalar_t bose_distribution(double temperature,
 			   double frequency) {
   return 1.0 / ( std::exp(temperature * frequency) - 1.0);
@@ -40,40 +55,56 @@ Lindbladian drivenCavity(double n_b,
 			 int dimension,
 			 int elec_dim) {
   std::cout << "ampltiude: " << amplitude << std::endl;
-  calc_mat_t A = annihilationOperator_sp(dimension);
-  calc_mat_t A_t = creationOperator_sp(dimension);
-  A = kroneckerProduct(A, calc_mat_t::Identity(elec_dim, elec_dim)).eval();
-  A_t = kroneckerProduct(A_t, calc_mat_t::Identity(elec_dim, elec_dim)).eval();
+  auto A = kroneckerOperator_IDRHS(creationOperator_sp(dimension), elec_dim);
+  auto A_t = kroneckerOperator_IDRHS(annihilationOperator_sp(dimension),
+				     elec_dim);
+  std::vector<lo_ptr> lindblad_op;
+  lindblad_op.push_back(std::move(A));
+  lindblad_op.push_back(std::move(A_t));
   std::vector<scalar_t> ampl{gamma * (1.0 + n_b), gamma * n_b};
   return Lindbladian(TimeDependentHamiltonian<calc_mat_t>
 		     (DrivenCavityHamiltonian(frequency, laser_frequency,
 					      amplitude, dimension, elec_dim),
-		      dimension * elec_dim),
-		     {A, A_t}, ampl);
+		      dimension * elec_dim), lindblad_op, ampl);
 }
 
 Lindbladian::Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian,
 			 const std::vector<calc_mat_t> & lindblad_operators,
 			 const std::vector<scalar_t> & lindblad_amplitudes)
   :m_system_hamiltonian(system_hamiltonian.clone()),
-   m_lindblad_operators(lindblad_operators),
+   m_lindblad_operators(),
    m_lindblad_amplitudes(lindblad_amplitudes) {
   assert(lindblad_operators.size() == lindblad_amplitudes.size());
-  calculate_nh_term();
+  for (const auto & lb : lindblad_operators)
+    m_lindblad_operators.push_back(operatorize(lb));
+}
+
+Lindbladian::Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian,
+			 const std::vector<lo_ptr> & lindblad_operators,
+			 const std::vector<scalar_t> & lindblad_amplitudes)
+  :m_system_hamiltonian(system_hamiltonian.clone()),
+   m_lindblad_operators(),
+   m_lindblad_amplitudes(lindblad_amplitudes) {
+  assert(lindblad_operators.size() == lindblad_amplitudes.size());
+
+  for (const auto & lb : lindblad_operators)
+    m_lindblad_operators.push_back(lb->clone());
 }
 
 Lindbladian::Lindbladian(const Lindbladian & other)
   :m_system_hamiltonian(other.m_system_hamiltonian->clone()),
-   m_lindblad_operators(other.m_lindblad_operators),
+   m_lindblad_operators(),
    m_lindblad_amplitudes(other.m_lindblad_amplitudes) {
-  calculate_nh_term();
+  for (const auto & lb : other.m_lindblad_operators)
+    m_lindblad_operators.push_back(lb->clone());
 }
 
 
 std::unique_ptr<Hamiltonian<calc_mat_t>> Lindbladian::hamiltonian() const {
   std::unique_ptr<Hamiltonian<calc_mat_t>> hamiltonian_copy =
     m_system_hamiltonian->clone();
-  hamiltonian_copy->add(- 0.5i * m_nh_term);
+  hamiltonian_copy->add(- 0.5i * lindblad_term(m_lindblad_operators,
+					       m_lindblad_amplitudes));
   return hamiltonian_copy;
 }
 
@@ -84,29 +115,24 @@ Hamiltonian<calc_mat_t> & Lindbladian::system_hamiltonian() {
 void Lindbladian::add_subsystem(const calc_mat_t sub_hamiltonian) {
   int sub_dim = sub_hamiltonian.cols() / m_system_hamiltonian->dimension();
   for (size_type i = 0; i < m_lindblad_operators.size(); ++i) {
-    m_lindblad_operators[i] = tensor_identity(m_lindblad_operators[i],
-					      sub_dim);
+    m_lindblad_operators[i] = kroneckerOperator_IDRHS(m_lindblad_operators[i]->eval(),
+						      sub_dim);
   }
   m_system_hamiltonian->tensor(calc_mat_t::Identity(sub_dim, sub_dim));
   m_system_hamiltonian->add(sub_hamiltonian);
-  calculate_nh_term();
-}
-
-void Lindbladian::calculate_nh_term() {
-  m_nh_term = lindblad_term(m_lindblad_operators, m_lindblad_amplitudes);
-  
 }
 
 calc_mat_t Lindbladian::operator()(double time, const calc_mat_t & density_matrix) const {
-  calc_mat_t out = - 1.0i * ((*m_system_hamiltonian)(time) * density_matrix
-			- density_matrix * (*m_system_hamiltonian)(time));
+  calc_mat_t out = - 1.0i * (*(*m_system_hamiltonian)(time) * density_matrix
+			     - density_matrix * (*(*m_system_hamiltonian)(time)));
   for (size_type i = 0; i < m_lindblad_operators.size(); ++i) {
     if (std::abs(m_lindblad_amplitudes[i]) < tol) continue;
-    calc_mat_t adj_op = m_lindblad_operators[i].adjoint();
+    auto adj_op = m_lindblad_operators[i]->adjoint();
+    auto num = 0.5 * adj_op * m_lindblad_operators[i];
     out += m_lindblad_amplitudes[i]
-      * (m_lindblad_operators[i] * density_matrix * adj_op
-	 - 0.5 * adj_op * m_lindblad_operators[i] * density_matrix
-	 - 0.5 * density_matrix * adj_op * m_lindblad_operators[i]);
+      * ((*m_lindblad_operators[i]) * density_matrix * (*adj_op)
+	 - (*num) * density_matrix
+	 - density_matrix * (*num));
   }
   return out;
 }
@@ -116,45 +142,54 @@ std::unique_ptr<Hamiltonian<calc_mat_t>> Lindbladian::superoperator() const {
   
   struct SuperOperatorStruct {
 
-    calc_mat_t operator()(double time) const {
-      calc_mat_t lhs = superoperator_left((*system_hamiltonian)(time),
+    auto operator()(double time) const {
+      calc_mat_t lhs = superoperator_left((*system_hamiltonian)(time)->eval(),
 					  dimension);
-      calc_mat_t rhs = superoperator_right((*system_hamiltonian)(time),
+      calc_mat_t rhs = superoperator_right((*system_hamiltonian)(time)->eval(),
 					   dimension);
       calc_mat_t out = - 1.0i * (lhs - rhs);
       for (size_type i = 0; i < lindblad_operators.size(); ++i) {
-	calc_mat_t adj_op = lindblad_operators[i].adjoint();
-	calc_mat_t mat1 = superoperator_left(lindblad_operators[i],
+	calc_mat_t adj_op = lindblad_operators[i]->adjoint()->eval();
+	calc_mat_t mat1 = superoperator_left(lindblad_operators[i]->eval(),
 					  dimension);
 	calc_mat_t mat2 = superoperator_right(adj_op, dimension);
-	calc_mat_t mat3 = superoperator_left(adj_op * lindblad_operators[i],
+	calc_mat_t mat3 = superoperator_left(adj_op
+					     * lindblad_operators[i]->eval(),
 					  dimension);
-	calc_mat_t mat4 = superoperator_right(adj_op * lindblad_operators[i],
+	calc_mat_t mat4 = superoperator_right(adj_op
+					      * lindblad_operators[i]->eval(),
 					   dimension);
 	out += lindblad_amplitudes[i] * (mat1 * mat2 - 0.5 * mat3 - 0.5 * mat4);
       }
-      return 1.0i * out;
+      out = 1.0i * out;
+      return operatorize(out);
     }
     
     std::unique_ptr<Hamiltonian<calc_mat_t>> system_hamiltonian;
-    std::vector<calc_mat_t> lindblad_operators;
+    std::vector<lo_ptr> lindblad_operators;
     std::vector<scalar_t> lindblad_amplitudes;
     int dimension;
 
     SuperOperatorStruct(const SuperOperatorStruct & other)
       : system_hamiltonian(other.system_hamiltonian->clone()),
-	lindblad_operators(other.lindblad_operators),
+	lindblad_operators(),
 	lindblad_amplitudes(other.lindblad_amplitudes),
-	dimension(other.dimension) {}
+	dimension(other.dimension) {
+      for (const auto & lb : other.lindblad_operators)
+	lindblad_operators.push_back(lb->clone());
+    }
 
     SuperOperatorStruct(const std::unique_ptr<Hamiltonian<calc_mat_t>> & csystem_hamiltonian,
-			const std::vector<calc_mat_t> & clindblad_operators,
+			const std::vector<lo_ptr> & clindblad_operators,
 			const std::vector<scalar_t> & clindblad_amplitudes,
 			int cdimension)
       : system_hamiltonian(csystem_hamiltonian->clone()),
-	lindblad_operators(clindblad_operators),
+	lindblad_operators(),
 	lindblad_amplitudes(clindblad_amplitudes),
-	dimension(cdimension) {}
+	dimension(cdimension) {
+      for (const auto & lb : clindblad_operators)
+	lindblad_operators.push_back(lb->clone());
+    }
   };
 
   SuperOperatorStruct superoperator_struct(m_system_hamiltonian,
@@ -166,16 +201,18 @@ std::unique_ptr<Hamiltonian<calc_mat_t>> Lindbladian::superoperator() const {
     return TimeDependentHamiltonian<calc_mat_t>(superoperator_struct,
 						dimension * dimension).clone();
   } else {
-    return TimeIndependentHamiltonian<calc_mat_t>(superoperator_struct(0.0)).clone();
+    return TimeIndependentHamiltonian<calc_mat_t>
+      (superoperator_struct(0.0)).clone();
   }
 }
 
 Lindbladian::Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian,
-			 const std::vector<calc_mat_t> & lindblad_operators,
-			 const Eigen::MatrixXd & lindblad_matrix)
+			 const std::vector<calc_mat_t> & /*lindblad_operators*/,
+			 const Eigen::MatrixXd & /*lindblad_matrix*/)
   :m_system_hamiltonian(system_hamiltonian.clone()) {
-  assert((lindblad_matrix-lindblad_matrix.adjoint()).norm() < tol);
-  Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(lindblad_matrix);
+  assert(false);
+  // assert((lindblad_matrix-lindblad_matrix.adjoint()).norm() < tol);
+  /*Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(lindblad_matrix);
   mat_t U_adj = solver.eigenvectors().adjoint();
   Eigen::VectorXd gamma = solver.eigenvalues();
   for (int i = 0; i < gamma.size(); ++i) {
@@ -185,10 +222,15 @@ Lindbladian::Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian,
       m_lindblad_operators[i] += U_adj(j, i) * lindblad_operators[j];
     }
   }
-  calculate_nh_term();
-  std::cout << gamma << std::endl;
+  std::cout << gamma << std::endl;*/
 }
 
 
 Lindbladian::Lindbladian(const Hamiltonian<calc_mat_t> & system_hamiltonian)
   :m_system_hamiltonian(system_hamiltonian.clone()) {}
+
+Lindbladian::~Lindbladian() {
+  m_system_hamiltonian.reset();
+  m_lindblad_operators.resize(0);
+  m_lindblad_amplitudes.resize(0);
+}

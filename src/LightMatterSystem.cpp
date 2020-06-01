@@ -54,7 +54,7 @@ LightMatterSystem parse_system(YamlOrCMD & parser) {
 				    laser_amplitude, dimension, elec_dim);
   
   if (sites > 0) {
-    system.m_system_hamiltonian->add(calc_mat_t(light_matter));
+    system.m_system_hamiltonian->add(operatorize(calc_mat_t(light_matter)));
   }
 
   return LightMatterSystem {system, light_matter, projector,

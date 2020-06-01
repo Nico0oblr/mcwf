@@ -38,6 +38,8 @@ double oneNorm() const {
   return cval.maxCoeff();
 }
 
+void adjointInPlace() {*this = this->adjoint().eval();}
+
 double infNorm() const {
   VectorXd rval = VectorXd::Zero(rows());
   for (int k = 0; k < outerSize(); ++k) {

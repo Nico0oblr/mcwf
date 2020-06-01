@@ -10,14 +10,14 @@ vec_t jump_process(const vec_t & state,
   Eigen::VectorXd jump_probabilities(system.m_lindblad_operators.size());
 
   for (size_type i = 0; i < system.m_lindblad_operators.size(); ++i) {
-    jump_probabilities(i) = (system.m_lindblad_operators[i] * state).squaredNorm();
+    jump_probabilities(i) = (*system.m_lindblad_operators[i] * state).squaredNorm();
     jump_probabilities(i) *= std::abs(system.m_lindblad_amplitudes[i]);
   }
   if (jump_probabilities.sum() < tol) return state / state.norm();
   
   jump_probabilities /= jump_probabilities.sum();
   int jump_index = linear_search(jump_probabilities);
-  calc_mat_t out = system.m_lindblad_operators.at(jump_index) * state;
+  calc_mat_t out = *system.m_lindblad_operators.at(jump_index) * state;
   return out / out.norm();
 }
 
@@ -72,9 +72,9 @@ Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
 				     const calc_mat_t A1) {
   int sub_dim = system.m_system_hamiltonian->dimension();
   auto doubled_system_ham = system.m_system_hamiltonian->clone();
-  doubled_system_ham->tensor(calc_mat_t::Identity(2, 2), true);
+  doubled_system_ham->doubleMe();
   Lindbladian doubled_system(*doubled_system_ham,
-			     double_matrix(system.m_lindblad_operators),
+			     doubleOperatorVector(system.m_lindblad_operators),
 			     system.m_lindblad_amplitudes);
   auto hamiltonian = system.hamiltonian();
   auto doubled_hamiltonian = doubled_system.hamiltonian();
