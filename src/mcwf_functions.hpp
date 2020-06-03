@@ -5,7 +5,7 @@
 #include "Hamiltonian.hpp"
 #include "Recorders.hpp"
 
-class Lindbladian;
+struct Lindbladian;
 class HSpaceDistribution;
 
 vec_t jump_process(const vec_t & state,
@@ -27,12 +27,12 @@ void observable_calc(const Lindbladian & system,
 /*
   Two-time correlation function for fixed times t1 and t0.
 */
-Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
-				     const HSpaceDistribution & state_distro,
-				     double t1, double t2, double dt,
-				     int runs,
-				     const calc_mat_t A0,
-				     const calc_mat_t A1);
+void two_time_correlation(const Lindbladian & system,
+			  const HSpaceDistribution & state_distro,
+			  double t1, double t2, double dt,
+			  int runs,
+			  const calc_mat_t & A0,
+			  MCWFCorrelationRecorderMixin & recorder);
 
 /*
   For the calculation of a two-time correlation function <A(t_2)B(t_1)>. one has to split the trajectory at time t_1

@@ -1,5 +1,6 @@
 #include "CavityHamiltonian.hpp"
 #include "Lindbladian.hpp"
+#include "PadeExponential.hpp"
 
 double CavityHamiltonian::driving_term(double t) const {
   return -std::cos(m_laser_frequency * t) / m_laser_frequency;
@@ -23,7 +24,7 @@ CavityHamiltonian::CavityHamiltonian(double frequency, double laser_frequency,
 
   calc_mat_t X_eff = -1.0i * photon_energy;
   calc_mat_t X = -1.0i * (photon_energy + light_matter);
-  m_e_X = matrix_exponential(X * dt);
+  m_e_X = expm(X * dt);
   m_Y = -1.0i * driving_term;
   m_first_comm = - 0.5 * commutator(X_eff, m_Y);
   m_second_comm = 1.0 / 3.0 * commutator(m_Y, commutator(X_eff, m_Y));

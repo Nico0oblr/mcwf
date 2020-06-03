@@ -68,3 +68,9 @@ HSpaceDistribution coherent_photon_state(double mean_photons, int dimension) {
   std::cout << state.transpose().real() << std::endl;
   return HSpaceDistribution({1.0}, {state});
 }
+
+HSpaceDistribution operator+(HSpaceDistribution lhs,
+			     const HSpaceDistribution & rhs) {
+  lhs += rhs;
+  return lhs;
+}

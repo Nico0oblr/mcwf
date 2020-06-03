@@ -3,7 +3,7 @@
 
 #include "Common.hpp"
 #include "Recorders.hpp"
-class Lindbladian;
+struct Lindbladian;
 class HSpaceDistribution;
 
 void observable_kutta(const Lindbladian & system,

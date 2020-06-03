@@ -10,14 +10,14 @@ vec_t jump_process(const vec_t & state,
   Eigen::VectorXd jump_probabilities(system.m_lindblad_operators.size());
 
   for (size_type i = 0; i < system.m_lindblad_operators.size(); ++i) {
-    jump_probabilities(i) = (system.m_lindblad_operators[i] * state).squaredNorm();
+    jump_probabilities(i) = (*system.m_lindblad_operators[i] * state).squaredNorm();
     jump_probabilities(i) *= std::abs(system.m_lindblad_amplitudes[i]);
   }
   if (jump_probabilities.sum() < tol) return state / state.norm();
   
   jump_probabilities /= jump_probabilities.sum();
   int jump_index = linear_search(jump_probabilities);
-  calc_mat_t out = system.m_lindblad_operators.at(jump_index) * state;
+  calc_mat_t out = *system.m_lindblad_operators.at(jump_index) * state;
   return out / out.norm();
 }
 
@@ -64,22 +64,22 @@ void observable_calc(const Lindbladian & system,
   }
 }
 
-Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
-				     const HSpaceDistribution & state_distro,
-				     double t1, double t2, double dt,
-				     int runs,
-				     const calc_mat_t A0,
-				     const calc_mat_t A1) {
+void two_time_correlation(const Lindbladian & system,
+			  const HSpaceDistribution & state_distro,
+			  double t1, double t2, double dt,
+			  int runs,
+			  const calc_mat_t & A0,
+			  MCWFCorrelationRecorderMixin & recorder) {
   int sub_dim = system.m_system_hamiltonian->dimension();
   auto doubled_system_ham = system.m_system_hamiltonian->clone();
-  doubled_system_ham->tensor(calc_mat_t::Identity(2, 2), true);
+  doubled_system_ham->doubleMe();
   Lindbladian doubled_system(*doubled_system_ham,
-			     double_matrix(system.m_lindblad_operators),
+			     doubleOperatorVector(system.m_lindblad_operators),
 			     system.m_lindblad_amplitudes);
   auto hamiltonian = system.hamiltonian();
   auto doubled_hamiltonian = doubled_system.hamiltonian();
   int time_steps = static_cast<int>((t2 - t1) / dt);
-  Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
+  // Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
   for (int i = 0; i < runs; ++i) {
     vec_t state = state_distro.draw();
     double t = 0.0;
@@ -93,12 +93,11 @@ Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
     for (int j = 0; j < time_steps; ++j, t += dt) {
       perform_time_step(doubled_system, *doubled_hamiltonian,
 			t, dt, doubled_state);
-      double correlation = ((doubled_state.head(sub_dim).adjoint() * A1
-			     * doubled_state.tail(sub_dim)
-			     / doubled_state.squaredNorm()
-			     * norm * norm).real())(0);
-      n_ensemble(i, j) = correlation;
+      double factor = norm * norm / doubled_state.squaredNorm();
+      recorder.record(doubled_state.head(sub_dim), doubled_state.tail(sub_dim),
+		      i, j);
+      // double correlation = doubled_state.head(sub_dim).dot(A1 * doubled_state.tail(sub_dim)).real() * factor;
+      // n_ensemble(i, j) = correlation;
     }
   }
-  return n_ensemble;
 }

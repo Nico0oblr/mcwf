@@ -1,15 +1,16 @@
 #ifndef EIGENCOMMON_HPP
 #define EIGENCOMMON_HPP
 
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+// #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #define EIGEN_DONT_PARALLELIZE
 #define EIGEN_SPARSEMATRIX_PLUGIN "SparseAddons.h"
 #define EIGEN_SPARSEMATRIXBASE_PLUGIN "SparseBaseAddons.h"
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include "KroneckerProduct.hpp"
-#pragma GCC diagnostic pop
+// #pragma GCC diagnostic pop
 #include <iostream>
+
 
 const double tol = 1e-10;
 
@@ -24,8 +25,7 @@ using mat_t = Eigen::Matrix<scalar_t, Eigen::Dynamic, Eigen::Dynamic>;
 using diag_mat_t = Eigen::DiagonalMatrix<scalar_t, Eigen::Dynamic,
 					 Eigen::Dynamic>;
 using spmat_t = Eigen::SparseMatrix<scalar_t>;
-using calc_mat_t = mat_t;
-
+using calc_mat_t = spmat_t;
 
 /*
   Prints the matrix cols / rows to stdout
@@ -175,18 +175,18 @@ vec_t unstack_matrix_alt(const Eigen::EigenBase<Derived> & mat) {
 }
 
 /*
-  Prints the percentage of matrix entries below a certain tolerance.
+  Prints the percentage of matrix entries above a certain tolerance.
  */
 template<typename Derived>
 double sparsity(const Eigen::MatrixBase<Derived> & mat) {
   double zeros = (mat.derived().array().abs() < tol).count();
   double entries = mat.size();
-  return zeros / entries;
+  return 1.0 - zeros / entries;
 }
 
 template<typename Derived>
 double sparsity(const Eigen::SparseMatrixBase<Derived> & mat) {
-  return mat.nonZeros() / static_cast<double>(mat.size());
+  return mat.derived().nonZeros() / static_cast<double>(mat.size());
 }
 
 /*

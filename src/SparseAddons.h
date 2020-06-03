@@ -25,4 +25,31 @@ Scalar trace() const {
   return sum;
 }
 
+double oneNorm() const {
+  VectorXd cval = VectorXd::Zero(cols());
+  for (int k = 0; k < outerSize(); ++k) {
+    for (InnerIterator it(*this, k); it; ++it)
+      {
+	cval(it.col()) += std::abs(it.value());
+      }
+  }
+
+  // return (this->cwiseAbs() * VectorXd::Ones(this->cols())).maxCoeff();
+  return cval.maxCoeff();
+}
+
+void adjointInPlace() {*this = this->adjoint().eval();}
+
+double infNorm() const {
+  VectorXd rval = VectorXd::Zero(rows());
+  for (int k = 0; k < outerSize(); ++k) {
+    for (InnerIterator it(*this, k); it; ++it)
+      {
+	rval(it.row()) += std::abs(it.value());
+      }
+  }
+  return rval.maxCoeff();
+  // return (RowVectorXd::Ones(this->rows()) * this->cwiseAbs()).maxCoeff();
+}
+
 #endif /* SPARSEADDONS_H */

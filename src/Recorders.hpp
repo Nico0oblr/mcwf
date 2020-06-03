@@ -2,6 +2,7 @@
 #define RECORDERS_HPP
 
 #include "Common.hpp"
+#include "LinearOperator.hpp"
 #include <fstream>
 
 /*
@@ -12,14 +13,21 @@ class RecorderHost {
 public:
   using InformationType = _InformationType;
   virtual void record(const InformationType & /*state*/) {}
+  RecorderHost() = default;
+  virtual ~RecorderHost() = default;
+  
+protected:
+  RecorderHost(const RecorderHost &) = default;
+  RecorderHost& operator=(const RecorderHost &) = default;
 };
 
 /*
   Abstraction of <observable>.
 */
-double evaluate_impl(const vec_t & state, const calc_mat_t & observable);
+double evaluate_impl(const vec_t & state,
+		     const LinearOperator<calc_mat_t> & observable);
 double evaluate_impl(const calc_mat_t & density_matrix,
-		     const calc_mat_t & observable);
+		     const LinearOperator<calc_mat_t> & observable);
 
 /*Adds the recording of a vector of observables*/
 template<typename Base>
@@ -29,7 +37,7 @@ public:
     Base::record(info);
     assert(m_observables.size() == m_records.size());
     for (size_type i = 0; i < m_observables.size(); ++i) {
-      m_records[i].push_back(evaluate_impl(info, m_observables[i]));
+      m_records[i].push_back(evaluate_impl(info, *m_observables[i]));
     }
   }
 
@@ -41,12 +49,41 @@ public:
   size_type size() const {
     return m_records.size();
   }
+
+  ObservableVectorMixin<Base>&
+  push_back(const LinearOperator<calc_mat_t> & obs) {
+    m_observables.push_back(obs.clone());
+    m_records.push_back({});
+    return *this;
+  }
+
+  ObservableVectorMixin()
+    :Base(), m_observables(), m_records() {}
   
   ObservableVectorMixin(const std::vector<calc_mat_t> & observables)
-    :Base(), m_observables(observables), m_records(m_observables.size()) {}
-    
+    :Base(), m_observables(), m_records(observables.size()) {
+    for (const calc_mat_t & mat: observables) {
+      m_observables.push_back(BareLinearOperator<calc_mat_t>(mat).clone());
+    }
+  }
+
+  ObservableVectorMixin(const std::vector<lo_ptr> & observables)
+    :Base(), m_observables(), m_records(observables.size()) {
+    for (const lo_ptr & mat: observables) {
+      m_observables.push_back(mat->clone());
+    }
+  }
+
+  virtual ~ObservableVectorMixin() {}
+
+  ObservableVectorMixin(const ObservableVectorMixin<Base> & other)
+    :Base(), m_observables(), m_records(other.m_records) {
+    for (const auto & x : other.m_observables)
+      m_observables.push_back(x->clone());
+  }
+  
   // protected:
-  std::vector<calc_mat_t> m_observables;
+  std::vector<lo_ptr> m_observables;
   std::vector<std::vector<double>> m_records;
 };
 
@@ -76,6 +113,9 @@ public:
 
   DirectDensityObserverMixin()
     : Base(), m_density_matrices() {}
+
+
+  virtual ~DirectDensityObserverMixin() {}
   
 private:
   std::vector<calc_mat_t> m_density_matrices;
@@ -100,6 +140,8 @@ public:
     write(output);
     output.close();
   }
+
+  virtual ~ExpvalWriterMixin() {}
 };
 
 /*Mixes capabilities for MCWF run into the recorder*/
@@ -115,7 +157,13 @@ public:
 
   MCWFRecorder(size_type runs)
     :m_runs(runs) {}
-
+  
+  virtual ~MCWFRecorder() = default;
+  
+protected:
+  MCWFRecorder(const MCWFRecorder &) = default;
+  MCWFRecorder& operator=(const MCWFRecorder &) = default;
+  
 private:
   size_type m_runs;
 };
@@ -132,12 +180,16 @@ public:
     Base::record(state, run_index, time_step);
     assert(m_observables.size() == m_records.size());
     for (size_type i = 0; i < m_observables.size(); ++i) {
-      m_records[i][run_index].push_back(evaluate_impl(state, m_observables[i]));
+      m_records[i][run_index].push_back(evaluate_impl(state, *m_observables[i]));
     }
   }
   
   Eigen::VectorXd expval(int i) const {
     return distribution(i).colwise().mean();
+  }
+
+  Eigen::VectorXd expval_squared(int i) const {
+    return distribution(i).array().square().matrix().colwise().mean();
   }
 
   Eigen::MatrixXd distribution(int index) const {
@@ -155,23 +207,62 @@ public:
   }
 
   Eigen::VectorXd Var2(int i) const {
-    return expval(i) - distribution(i).array().square().matrix().colwise().mean();
+    return expval_squared(i)
+      - Eigen::VectorXd(expval(i).array().pow(2.0).matrix());
   }
 
   size_type size() const {
     return m_records.size();
   }
-  
+
+  MCWFObservableVectorMixin<Base>&
+  push_back(const LinearOperator<calc_mat_t> & obs) {
+    m_observables.push_back(obs.clone());
+    m_records.push_back(std::vector<std::vector<double>>(Base::n_runs()));
+    return *this;
+  }
+
   MCWFObservableVectorMixin(const std::vector<calc_mat_t> & observables,
-			    int runs)
-    :Base(runs), m_observables(observables), m_records(observables.size()) {
+			int runs)
+    :Base(runs), m_observables(), m_records(observables.size()) {
+    for (const calc_mat_t & mat: observables) {
+      m_observables.push_back(BareLinearOperator<calc_mat_t>(mat).clone());
+    }
     for (size_type i = 0; i < observables.size(); ++i){
       m_records[i].resize(runs);
     }
   }
 
+  MCWFObservableVectorMixin(int runs)
+    :Base(runs), m_observables(), m_records() {}
+  
+  MCWFObservableVectorMixin(const std::vector<lo_ptr> & observables,
+			    int runs)
+    :Base(runs), m_observables(), m_records(observables.size()) {
+    for (const lo_ptr & mat: observables) {
+      m_observables.push_back(mat->clone());
+    }
+    for (size_type i = 0; i < observables.size(); ++i){
+      m_records[i].resize(runs);
+    }
+  }
+
+  // MCWFObservableVectorMixin(const MCWFObservableVectorMixin<Base> &) = delete;
+  // MCWFObservableVectorMixin& operator=(const MCWFObservableVectorMixin<Base>&) = delete;
+  virtual ~MCWFObservableVectorMixin() override {}
+  
+  MCWFObservableVectorMixin(const MCWFObservableVectorMixin<Base> & other)
+    :Base(other.n_runs()), m_observables(), m_records(other.m_records) {
+    for (const auto & x : other.m_observables)
+      m_observables.push_back(x->clone());
+  }
+
+  const std::vector<std::vector<std::vector<double>>> & data() const {
+    return m_records;
+  }
+  
   // protected:
-  std::vector<calc_mat_t> m_observables;
+  std::vector<lo_ptr> m_observables;
   std::vector<std::vector<std::vector<double>>> m_records;
 };
 
@@ -209,11 +300,47 @@ public:
 
   MCWFDensityObserverMixin(int runs)
     : Base(runs), running_index(0), m_running_average() {}
+
+  virtual ~MCWFDensityObserverMixin() {}
   
 private:
   int running_index;
   std::vector<calc_mat_t> m_running_average;
 };
+
+class CorrelationRecorderMixin :
+  public ObservableVectorMixin<RecorderHost<vec_t>> {
+public:
+  using Base = ObservableVectorMixin<RecorderHost<vec_t>>;
+  using Base::Base;
+  
+  using Base::record;
+  virtual void record(const vec_t & lhs, const vec_t & rhs) {
+    assert(m_observables.size() == m_records.size());
+    for (size_type i = 0; i < m_observables.size(); ++i) {
+      m_records[i].push_back(lhs.dot(*m_observables[i] * rhs).real());
+    }
+  }
+};
+
+class MCWFCorrelationRecorderMixin :
+  public MCWFObservableVectorMixin<MCWFRecorder> {
+public:
+  using Base = MCWFObservableVectorMixin<MCWFRecorder>;
+  using Base::Base;
+
+  using Base::record;
+  virtual void record(const vec_t & lhs,
+		      const vec_t & rhs,
+		      size_type run_index,
+		      size_type /*time_step*/) {
+    assert(m_observables.size() == m_records.size());
+    for (size_type i = 0; i < m_observables.size(); ++i) {
+      m_records[i][run_index].push_back(lhs.dot(*m_observables[i] * rhs).real());
+    }
+  }
+};
+
 
 using MCWFObservableRecorder = MCWFObservableVectorMixin<MCWFRecorder>;
 using MCWFDmatRecorder = MCWFDensityObserverMixin<MCWFRecorder>;

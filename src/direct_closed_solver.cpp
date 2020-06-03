@@ -26,32 +26,31 @@ void direct_closed_observable(Hamiltonian<calc_mat_t> & system,
   // return n_ensemble;
 }
 
-Eigen::VectorXd
-direct_closed_two_time_correlation(Hamiltonian<calc_mat_t> & system,
-				   const vec_t & cstate,
-				   double t0, double t1,
-				   double dt,
-				   const calc_mat_t & A,
-				   const calc_mat_t & B) {
+void direct_closed_two_time_correlation(Hamiltonian<calc_mat_t> & system,
+					const vec_t & cstate,
+					double t0, double t1,
+					double dt,
+					const calc_mat_t & A,
+					CorrelationRecorderMixin & recorder) {
   vec_t state = cstate;
   int time_steps0 = static_cast<int>(t0 / dt);
   int time_steps1 = static_cast<int>((t1 - t0) / dt);
 
   double t = 0;
-  Eigen::VectorXd n_ensemble = Eigen::VectorXd::Zero(time_steps1);
+  // Eigen::VectorXd n_ensemble = Eigen::VectorXd::Zero(time_steps1);
   for (int j = 0; j < time_steps0; ++j, t += dt) {
     state = system.propagate(t, dt, state);
     state /= state.norm();
   }
-  vec_t Bstate = B * state;
-  double current_norm = Bstate.norm();
+  vec_t Astate = A * state;
+  double current_norm = Astate.norm();
   
   for (int j = 0; j < time_steps1; ++j, t += dt) {
-    Bstate = system.propagate(t, dt, Bstate);
+    Astate = system.propagate(t, dt, Astate);
     state = system.propagate(t, dt, state);
     state /= state.norm();
-    Bstate *= (current_norm / Bstate.norm());
-    n_ensemble(j) = state.dot(A * Bstate).real();
+    Astate *= (current_norm / Astate.norm());
+    recorder.record(state, Astate);
+    // n_ensemble(j) = state.dot(A * Astate).real();
   }
-  return n_ensemble;
 }

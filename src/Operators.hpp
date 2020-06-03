@@ -184,4 +184,11 @@ mat_t pauli_squared_total(int sites);
 mat_t HeisenbergChain(int sites,
 		      double Jx, double Jy, double Jz,
 		      bool periodic);
+
+spmat_t n_th_subsystem_sp(const spmat_t & op,
+			  int n_subsystem,
+			  int n_subsystems);
+
+spmat_t sum_operator_sp(const spmat_t & op, int sites);
+
 #endif /* OPERATORS_HPP */
