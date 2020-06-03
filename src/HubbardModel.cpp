@@ -275,3 +275,53 @@ spmat_t Hubbard_light_matter_sp(int photon_dimension,
   spmat_t hopping_terms_adj = hopping_terms.adjoint();
   return hopping_terms + hopping_terms_adj + onsite_terms;
 }
+
+spmat_t Hubbard_hamiltonian_sp(int sites,
+			       double hopping,
+			       double hubbardU,
+			       bool periodic,
+			       const spmat_t & proj) {
+  int dimension = std::pow(4, sites);
+  spmat_t hopping_terms = spmat_t::Zero(dimension, dimension);
+  spmat_t onsite_terms = spmat_t::Zero(dimension, dimension);
+
+  using namespace HubbardOperators;
+  for (int i = 0; i + 1 < sites; ++i) {
+    hopping_terms += n_th_subsystem_sp(c_up_t(), i, sites)
+      * n_th_subsystem_sp(c_up(), i + 1, sites);
+    hopping_terms += n_th_subsystem_sp(c_down_t(), i, sites)
+      * n_th_subsystem_sp(c_down(), i + 1, sites);
+  }
+
+  if (periodic && sites > 2) {
+    hopping_terms += n_th_subsystem_sp(c_up_t(), sites - 1, sites)
+      * n_th_subsystem_sp(c_up(), 0, sites);
+    hopping_terms += n_th_subsystem_sp(c_down_t(), sites - 1, sites)
+      * n_th_subsystem_sp(c_down(), 0, sites);
+  }
+
+  for (int i = 0; i < sites; ++i) {
+    onsite_terms += n_th_subsystem_sp(n_up(), i, sites)
+      * n_th_subsystem_sp(n_down(), i, sites);
+  }
+
+  onsite_terms *= hubbardU;
+  hopping_terms *= hopping;
+  hopping_terms = proj * hopping_terms * proj.adjoint();
+  onsite_terms = proj * onsite_terms * proj.adjoint();
+  return hopping_terms + spmat_t(hopping_terms.adjoint()) + onsite_terms;
+}
+
+#include "Lanczos.hpp"
+
+HSpaceDistribution HubbardGroundState(int sites,
+				      double hopping,
+				      double hubbardU,
+				      bool periodic,
+				      const spmat_t & proj) {
+  spmat_t hubbard = Hubbard_hamiltonian_sp(sites, hopping, hubbardU, periodic,
+					   proj);
+  int dimension = hubbard.rows();
+  int niter = std::min(75, dimension / 2);
+  return HSpaceDistribution({1.0}, {find_groundstate(hubbard, niter).second});
+}

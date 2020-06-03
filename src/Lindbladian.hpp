@@ -14,9 +14,8 @@ lo_ptr lindblad_term(const std::vector<lo_ptr> & lindblad_operators,
 class DrivenCavityHamiltonian {
 public:
   lo_ptr operator()(double time) const {
-    return scale_rhs_and_add(*time_indep, *time_dep,
-			     std::sin(laser_frequency * time));
-    // return time_indep + std::sin(laser_frequency * time) * time_dep;
+    return scale_and_add(*time_indep, *time_dep,
+			 1.0, std::sin(laser_frequency * time));
   }
 
   DrivenCavityHamiltonian(double cavity_frequency,

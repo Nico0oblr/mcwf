@@ -59,4 +59,16 @@ spmat_t Hubbard_light_matter_sp(int photon_dimension,
 				double hubbardU,
 				bool periodic,
 				const spmat_t & proj);
+
+spmat_t Hubbard_hamiltonian_sp(int sites,
+			       double hopping,
+			       double hubbardU,
+			       bool periodic,
+			       const spmat_t & proj);
+
+HSpaceDistribution HubbardGroundState(int sites,
+				      double hopping,
+				      double hubbardU,
+				      bool periodic,
+				      const spmat_t & proj);
 #endif /* HUBBARDMODEL_HPP */

@@ -35,6 +35,7 @@
 #include "ArnoldiIteration.hpp"
 #include "Kron.hpp"
 #include "LinearOperator.hpp"
+#include "Lanczos.hpp"
 
 namespace py = pybind11;
 
@@ -152,6 +153,7 @@ PYBIND11_MODULE(mcwf, m) {
   mhub.def("n_down", &HubbardOperators::n_down);
   mhub.def("n_up", &HubbardOperators::n_up);
   m.def("Hubbard_hamiltonian", &Hubbard_hamiltonian);
+  m.def("Hubbard_hamiltonian_sp", &Hubbard_hamiltonian_sp);
   m.def("Hubbard_light_matter", &Hubbard_light_matter);
   m.def("Hubbard_light_matter_sp", &Hubbard_light_matter_sp);
   m.def("get_spin_sector", &get_spin_sector);
@@ -194,8 +196,12 @@ PYBIND11_MODULE(mcwf, m) {
     
   py::class_<MCWFObservableRecorder, MCWFRecorder>(m, "MCWFObservableRecorder")
     .def("expval", &MCWFObservableRecorder::expval)
+    .def("data", &MCWFObservableRecorder::data)
+    .def("Var2", &MCWFObservableRecorder::Var2)
     .def("distribution", &MCWFObservableRecorder::distribution)
+    .def("push_back", &MCWFObservableRecorder::push_back)
     .def(py::init<const std::vector<calc_mat_t> & , int>())
+    .def(py::init<int>())
     .def(py::pickle
 	 (
 	  [](const MCWFObservableRecorder &p) { // __getstate__
@@ -216,10 +222,13 @@ PYBIND11_MODULE(mcwf, m) {
 	    return tmp;
 	  }
 	  ));
+  
   py::class_<StateObservableRecorder, RecorderHost<vec_t>>
     (m, "StateObservableRecorder")
     .def("expval", &StateObservableRecorder::expval)
+    .def("push_back", &StateObservableRecorder::push_back)
     .def(py::init<const std::vector<calc_mat_t> &>())
+    .def(py::init<>())
     .def(py::pickle
 	 (
 	  [](const StateObservableRecorder &p) { // __getstate__
@@ -238,10 +247,13 @@ PYBIND11_MODULE(mcwf, m) {
 	    return tmp;
 	  }
 	  ));
+  
   py::class_<DmatObservableRecorder, RecorderHost<calc_mat_t>>
     (m, "DmatObservableRecorder")
     .def("expval", &DmatObservableRecorder::expval)
+    .def("push_back", &DmatObservableRecorder::push_back)
     .def(py::init<const std::vector<calc_mat_t> &>())
+    .def(py::init<>())
     .def(py::pickle
 	 (
 	  [](const DmatObservableRecorder &p) { // __getstate__
@@ -270,6 +282,12 @@ PYBIND11_MODULE(mcwf, m) {
   py::class_<DirectDmatRecorder, RecorderHost<calc_mat_t>>
     (m, "DirectDmatRecorder")
     .def("density_matrices", &DirectDmatRecorder::density_matrices);
+  py::class_<MCWFCorrelationRecorderMixin, MCWFObservableRecorder>
+    (m, "MCWFCorrelationRecorderMixin")
+    .def(py::init<int>());
+  py::class_<CorrelationRecorderMixin, StateObservableRecorder>
+    (m, "CorrelationRecorderMixin")
+    .def(py::init<>());
     
   /*toy_spin_model.hpp*/
   m.def("J0_n", &J0_n);
@@ -320,7 +338,6 @@ PYBIND11_MODULE(mcwf, m) {
 	-> mat_t {return superoperator_right(op, dimension);});
   m.def("unstack_matrix", [](const Eigen::Ref<const mat_t> & op)
 	-> mat_t {return unstack_matrix(op);});
-
     
   /*HSpaceDistribution*/
   py::class_<HSpaceDistribution>(m, "HSpaceDistribution")
@@ -330,6 +347,7 @@ PYBIND11_MODULE(mcwf, m) {
 	 const std::vector<int> &, int>())
     .def(py::init<int>())
     .def(py::self += py::self)
+    .def(py::self + py::self)
     .def(py::pickle
 	 (
 	  [](const HSpaceDistribution &p) { // __getstate__
@@ -510,12 +528,14 @@ PYBIND11_MODULE(mcwf, m) {
   m.def("kroneckerApply_id", &kroneckerApply_id);
   m.def("kroneckerApply_LHS", &kroneckerApply_LHS);
   m.def("kroneckerApplyLazy", &kroneckerApply);
+  m.def("kroneckerApply_sp", &kroneckerApply_sp);
 
   py::class_<LinearOperator<spmat_t>>(m, "LinearOperator")
     .def("apply_to", &LinearOperator<spmat_t>::apply_to)
     .def("applied_to", &LinearOperator<spmat_t>::applied_to)
     .def("eval", &LinearOperator<spmat_t>::eval)
     .def("rows", &LinearOperator<spmat_t>::rows)
+    .def("cols", &LinearOperator<spmat_t>::cols)
     .def("mult_by_scalar", &LinearOperator<spmat_t>::mult_by_scalar)
     .def("adjoint", &LinearOperator<spmat_t>::adjoint)
     .def("adjointInPlace", &LinearOperator<spmat_t>::adjointInPlace)
@@ -580,4 +600,12 @@ PYBIND11_MODULE(mcwf, m) {
   py::class_<KroneckerIDLHSLinearOperator<spmat_t>, LinearOperator<spmat_t>>(m, "KroneckerIDLHSLinearOperator");
   py::class_<DoubledLinearOperator<spmat_t>, LinearOperator<spmat_t>>(m, "DoubledLinearOperator");
   py::class_<PowerLinearOperator<spmat_t>, LinearOperator<spmat_t>>(m, "PowerLinearOperator");
+
+  /* Lanczos.hpp */
+  m.def("lanczos_iteration", &lanczos_iteration<LinearOperator<spmat_t>>);
+  m.def("lanczos_iteration", &lanczos_iteration<spmat_t>);
+  m.def("diagonalize_iteration", &diagonalize_iteration<mat_t>);
+  m.def("find_groundstate", &find_groundstate<spmat_t>);
+  m.def("find_groundstate", &find_groundstate<LinearOperator<spmat_t>>);
+  m.def("HubbardGroundState", &HubbardGroundState);
 }

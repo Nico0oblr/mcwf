@@ -344,7 +344,8 @@ def test_superoperator():
     result_rhs1 = restack_vector(tmp2, dimension)
     result_rhs2 = vec @ op
 
-    mat_almost_equal(restack_vector(unstack_matrix(vec).todense(), dimension), vec)
+    mat_almost_equal(restack_vector(unstack_matrix(vec).todense(),
+                                    dimension), vec)
     mat_almost_equal(result_lhs1, result_lhs2)
     mat_almost_equal(result_rhs1, result_rhs2)
 

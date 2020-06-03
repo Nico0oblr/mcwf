@@ -38,18 +38,18 @@ int main(int argc, char ** argv) {
   std::string method = parser.parse<std::string>("method");
   double time1 = parser.parse<double>("time1");
   if (method == "mcwf_correlation") {
-    n_averaged = two_time_correlation(lms.system, state_distro,
+    /*n_averaged = two_time_correlation(lms.system, state_distro,
 				      time1, time, dt, runs, observable,
-				      observable).colwise().mean();
+				      observable).colwise().mean();*/
   } else if (method == "direct_correlation") {
-    n_averaged = two_time_correlation_direct(lms.system, state_distro,
+    /*n_averaged = two_time_correlation_direct(lms.system, state_distro,
 					     time1, time, dt, observable,
-					     observable);
+					     observable);*/
   } else if (method == "direct_closed_correlation") {
-    n_averaged = direct_closed_two_time_correlation(lms.hamiltonian(),
+    /*n_averaged = direct_closed_two_time_correlation(lms.hamiltonian(),
 						    state_distro.draw(),
 						    time1, time, dt, observable,
-						    observable);
+						    observable);*/
   } else if (method == "mcwf") {
     ExpvalWriterMixin<MCWFObservableRecorder> recorder({observable}, runs);
     observable_calc(lms.system, state_distro, time, dt, runs, recorder);

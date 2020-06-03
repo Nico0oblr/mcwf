@@ -64,12 +64,12 @@ void observable_calc(const Lindbladian & system,
   }
 }
 
-Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
-				     const HSpaceDistribution & state_distro,
-				     double t1, double t2, double dt,
-				     int runs,
-				     const calc_mat_t A0,
-				     const calc_mat_t A1) {
+void two_time_correlation(const Lindbladian & system,
+			  const HSpaceDistribution & state_distro,
+			  double t1, double t2, double dt,
+			  int runs,
+			  const calc_mat_t & A0,
+			  MCWFCorrelationRecorderMixin & recorder) {
   int sub_dim = system.m_system_hamiltonian->dimension();
   auto doubled_system_ham = system.m_system_hamiltonian->clone();
   doubled_system_ham->doubleMe();
@@ -79,7 +79,7 @@ Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
   auto hamiltonian = system.hamiltonian();
   auto doubled_hamiltonian = doubled_system.hamiltonian();
   int time_steps = static_cast<int>((t2 - t1) / dt);
-  Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
+  // Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
   for (int i = 0; i < runs; ++i) {
     vec_t state = state_distro.draw();
     double t = 0.0;
@@ -93,12 +93,11 @@ Eigen::MatrixXd two_time_correlation(const Lindbladian & system,
     for (int j = 0; j < time_steps; ++j, t += dt) {
       perform_time_step(doubled_system, *doubled_hamiltonian,
 			t, dt, doubled_state);
-      double correlation = ((doubled_state.head(sub_dim).adjoint() * A1
-			     * doubled_state.tail(sub_dim)
-			     / doubled_state.squaredNorm()
-			     * norm * norm).real())(0);
-      n_ensemble(i, j) = correlation;
+      double factor = norm * norm / doubled_state.squaredNorm();
+      recorder.record(doubled_state.head(sub_dim), doubled_state.tail(sub_dim),
+		      i, j);
+      // double correlation = doubled_state.head(sub_dim).dot(A1 * doubled_state.tail(sub_dim)).real() * factor;
+      // n_ensemble(i, j) = correlation;
     }
   }
-  return n_ensemble;
 }

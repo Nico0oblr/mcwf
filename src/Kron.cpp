@@ -53,3 +53,22 @@ vec_t kroneckerApply_LHS(const spmat_t & B,
   mat_t ABvec = B * Eigen::Map<const mat_t>(vec.data(), B.cols(), codimension);
   return Eigen::Map<vec_t>(ABvec.data(), vec.size());
 }
+
+vec_t kroneckerApply_sp(const spmat_t & A,
+			const spmat_t & B,
+			const spvec & vec) {
+  /*assert(vec.size() == A.cols() * B.cols()
+	 && "Vector must have dimA * dimB in tensor space");
+  mat_t Bvec = B * Eigen::Map<const mat_t>(vec.data(), B.cols(), A.cols());
+  vec_t out = vec_t::Zero(vec.size());
+  for (int k = 0; k < A.outerSize(); ++k) {
+    for (spmat_t::InnerIterator it(A, k); it; ++it) {
+      int i = it.row();
+      int j = it.col();
+      out(Eigen::seq(i * B.cols(), (i + 1) *  B.cols() - 1))
+	+= it.value() * Bvec.col(j);
+    }
+  }
+
+  return out;*/
+}

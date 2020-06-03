@@ -178,8 +178,6 @@ ArnoldiIteration<MatrixType>::ArnoldiIteration(const MatrixType & A,
     m_V(EigenvectorType::Zero(A.rows(), ncv + 1)),
     m_isInitialized(false),
     m_eigenvectorsOk(false) {
-  LOG_VAR(A.rows());
-  LOG_VAR(A.cols());
   m_V.col(0) = v0 / v0.norm();
   k_n_arnoldi(A, nev);
 }
@@ -302,7 +300,6 @@ vec_t exp_krylov_alt(const spmat_t & A, const vec_t & vec, int nruns);
 
 template<typename MatrixType>
 vec_t exp_krylov_apply(const MatrixType & A, const vec_t & vec, int nruns) {
-  LOG(logINFO) << "running exp_krylov" << std::endl;
   ArnoldiIteration<MatrixType> iteration(A, nruns, nruns, vec);
   return iteration.apply_exp(vec, iteration.nit());
 }

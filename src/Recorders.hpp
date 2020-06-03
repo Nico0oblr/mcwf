@@ -49,6 +49,16 @@ public:
   size_type size() const {
     return m_records.size();
   }
+
+  ObservableVectorMixin<Base>&
+  push_back(const LinearOperator<calc_mat_t> & obs) {
+    m_observables.push_back(obs.clone());
+    m_records.push_back({});
+    return *this;
+  }
+
+  ObservableVectorMixin()
+    :Base(), m_observables(), m_records() {}
   
   ObservableVectorMixin(const std::vector<calc_mat_t> & observables)
     :Base(), m_observables(), m_records(observables.size()) {
@@ -178,6 +188,10 @@ public:
     return distribution(i).colwise().mean();
   }
 
+  Eigen::VectorXd expval_squared(int i) const {
+    return distribution(i).array().square().matrix().colwise().mean();
+  }
+
   Eigen::MatrixXd distribution(int index) const {
     assert(m_records.at(index).size() > 0 && "There is no data to distribute");
     size_type data_size = m_records.at(index).size();
@@ -193,13 +207,20 @@ public:
   }
 
   Eigen::VectorXd Var2(int i) const {
-    return expval(i) - distribution(i).array().square().matrix().colwise().mean();
+    return expval_squared(i)
+      - Eigen::VectorXd(expval(i).array().pow(2.0).matrix());
   }
 
   size_type size() const {
     return m_records.size();
   }
 
+  MCWFObservableVectorMixin<Base>&
+  push_back(const LinearOperator<calc_mat_t> & obs) {
+    m_observables.push_back(obs.clone());
+    m_records.push_back(std::vector<std::vector<double>>(Base::n_runs()));
+    return *this;
+  }
 
   MCWFObservableVectorMixin(const std::vector<calc_mat_t> & observables,
 			int runs)
@@ -212,6 +233,9 @@ public:
     }
   }
 
+  MCWFObservableVectorMixin(int runs)
+    :Base(runs), m_observables(), m_records() {}
+  
   MCWFObservableVectorMixin(const std::vector<lo_ptr> & observables,
 			    int runs)
     :Base(runs), m_observables(), m_records(observables.size()) {
@@ -233,6 +257,10 @@ public:
       m_observables.push_back(x->clone());
   }
 
+  const std::vector<std::vector<std::vector<double>>> & data() const {
+    return m_records;
+  }
+  
   // protected:
   std::vector<lo_ptr> m_observables;
   std::vector<std::vector<std::vector<double>>> m_records;
@@ -279,6 +307,40 @@ private:
   int running_index;
   std::vector<calc_mat_t> m_running_average;
 };
+
+class CorrelationRecorderMixin :
+  public ObservableVectorMixin<RecorderHost<vec_t>> {
+public:
+  using Base = ObservableVectorMixin<RecorderHost<vec_t>>;
+  using Base::Base;
+  
+  using Base::record;
+  virtual void record(const vec_t & lhs, const vec_t & rhs) {
+    assert(m_observables.size() == m_records.size());
+    for (size_type i = 0; i < m_observables.size(); ++i) {
+      m_records[i].push_back(lhs.dot(*m_observables[i] * rhs).real());
+    }
+  }
+};
+
+class MCWFCorrelationRecorderMixin :
+  public MCWFObservableVectorMixin<MCWFRecorder> {
+public:
+  using Base = MCWFObservableVectorMixin<MCWFRecorder>;
+  using Base::Base;
+
+  using Base::record;
+  virtual void record(const vec_t & lhs,
+		      const vec_t & rhs,
+		      size_type run_index,
+		      size_type /*time_step*/) {
+    assert(m_observables.size() == m_records.size());
+    for (size_type i = 0; i < m_observables.size(); ++i) {
+      m_records[i][run_index].push_back(lhs.dot(*m_observables[i] * rhs).real());
+    }
+  }
+};
+
 
 using MCWFObservableRecorder = MCWFObservableVectorMixin<MCWFRecorder>;
 using MCWFDmatRecorder = MCWFDensityObserverMixin<MCWFRecorder>;

@@ -51,4 +51,7 @@ public:
 
 HSpaceDistribution coherent_photon_state(double mean_photons, int dimension);
 
+HSpaceDistribution operator+(HSpaceDistribution lhs,
+			     const HSpaceDistribution & rhs);
+
 #endif /* HSPACEDISTRIBUTION_HPP */
