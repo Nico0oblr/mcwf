@@ -6,4 +6,5 @@ Some model parameters are shown in the config file config.yaml. These configs ca
 
 Depends on eigen3 and yaml-cpp. You will have to create a lib and include folder and download/build them. Not uploading those to a git or automating the process. Too much hassle.
 
-Tests are currently not in a suite, just in the header tests and you can run them by calling the methods.
+Example for the usage of python bindings are currently the plethora of scripts just in the root folder (Most functionality is bound to python).
+Tests are currently all contained in tests.py and can be run after compiling the shared library.
