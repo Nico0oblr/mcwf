@@ -1,52 +1,78 @@
 #!/usr/bin/env python3
 
+import pickle
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 from mcwf import *
-plt.rc('text', usetex=True)
-plt.rcParams.update({'font.size': 22})
+import argparse
+import uuid
+import subprocess
+import os
 
-dimension = 20
-sites = 2
-temperature = 0.0
-coupling = 0.2
-hopping = 1.0
-hubbardU = 8.0 * hopping
-frequency = 6.0
-laser_frequency = frequency
-laser_amplitude = 0.1
-gamma = 0.01
-periodic = False
-t = 200.0
-dt = 0.1
-runs = 2
-set_num_threads(4)
+def metastore(filename, *args):
+    all_dict = dict(globals(), **locals())
+    arg_dict = {}
+    for arg in args:
+        arg_dict[arg] = all_dict[arg]
+    this_content = None
+    with open(os.path.basename(__file__), 'r') as f:
+        this_content = f.read()
+    label = subprocess.check_output(["git", "describe", "--always"]).strip()
+    
+    arg_dict["script"] = this_content
+    arg_dict["git"] = label
+    with open(filename + '.pkl', 'wb') as f:
+        pickle.dump(arg_dict, f, pickle.HIGHEST_PROTOCOL)
 
-# Hubbard model
+def construct_parser():
+    parser = argparse.ArgumentParser(prog='mcwf run for hubbard model')
+    parser.add_argument('--sites', type = int, help = "sites in the hubbard model")
+    parser.add_argument('--coupling', type = float, default = 0.2, help = "light matter coupling")
+    parser.add_argument('--hubbardU', type = float, default = 8.0, help = "hubbard onsite term")
+    parser.add_argument('--frequency', type = float, default = 6.0, help = "cavity frequency")
+    parser.add_argument('--gamma', type = float, default = 0.01, help = "cavity leak")
+    parser.add_argument('--laser_amplitude', type = float, default = 0.1, help = "laser amplitude")
+    parser.add_argument('--dimension', type = int, default = 20, help = "photonic truncation dimension")
+    parser.add_argument('--temperature', type = float, default = 0.0, help = "temperature of environment")
+    parser.add_argument('--hopping', type = float, default = 1.0, help = "hopping energy of hubbard model")
+    parser.add_argument('--num-threads', type = int, default = 1, help = "number of threads for mcwf procedure")
+    parser.add_argument('--laser-frequency', type = float, help = "frequency of driving laser")
+    parser.add_argument('-t', type = float, default = 200.0, help = "end time")
+    parser.add_argument('--dt', type = float, default = 0.1, help = "time step")
+    parser.add_argument('--runs', type = int, default = 100, help = "number of mcwf runs")
+    parser.add_argument('--periodic', action='store_true', help = "periodic chain if provided, otherwise open")
+    return parser
+
+parser = construct_parser()
+args = parser.parse_args()
+
+if args.laser_frequency is None:
+    args.laser_frequency = args.frequency
+args.hubbardU *= args.hopping
+args.frequency *= args.hopping
+
+sites = args.sites
+set_num_threads(args.num_threads)
+
 projector = HubbardProjector_sp(sites, sites // 2, sites - (sites // 2))
-light_matter = Hubbard_light_matter_Operator(dimension, sites, coupling, hopping, hubbardU, periodic, projector);
+light_matter = Hubbard_light_matter_Operator(args.dimension, sites, args.coupling, args.hopping, args.hubbardU, args.periodic, projector);
 elec_dim = projector.shape[0]
-system_dimension = elec_dim * dimension
+system_dimension = elec_dim * args.dimension
 
-system = drivenCavity(temperature, frequency, laser_frequency, gamma, laser_amplitude, dimension, elec_dim)
+system = drivenCavity(args.temperature, args.frequency, args.laser_frequency, args.gamma, args.laser_amplitude, args.dimension, elec_dim)
 system.system_hamiltonian().add(light_matter)
-system_dimension = elec_dim * dimension
+system_dimension = elec_dim * args.dimension
 ident = scipy.sparse.identity(system_dimension)
-state_distro = coherent_photon_state(temperature, dimension) + HubbardGroundState(sites, hopping, hubbardU, periodic, projector)
+state_distro = coherent_photon_state(args.temperature, args.dimension) + HubbardGroundState(sites, args.hopping, args.hubbardU, args.periodic, projector)
 
-recorder = MCWFCorrelationRecorderMixin(runs)
-charge_densities = [kroneckerOperator_IDLHS(projector @ n_th_subsystem_sp(HubbardOperators.n_up() + HubbardOperators.n_down(), i, sites) @ projector.getH(), dimension) - operatorize(ident) for i in range(sites)]
+recorder = MCWFCorrelationRecorderMixin(args.runs)
+charge_densities = [kroneckerOperator_IDLHS(projector @ n_th_subsystem_sp(HubbardOperators.n_up() + HubbardOperators.n_down(), i, sites) @ projector.getH(), args.dimension) - operatorize(ident) for i in range(sites)]
 
 for charge_density in charge_densities:
     recorder.push_back(charge_density)
 
-import time
-start = time.time()
-Solvers.two_time_correlation(system, state_distro, 0.0, t, dt, runs, charge_densities[0].eval(), recorder)
-mid = time.time()
-print("Normal: {} seconds for {} steps".format(mid - start, int(t / dt)))
-print("This implies {} seconds per step".format((mid - start) / (t / dt)))
-
-plt.plot(recorder.Var2(0))
-plt.plot(recorder.expval(1))
+Solvers.two_time_correlation(system, state_distro, 0.0, args.t, args.dt, args.runs, charge_densities[0].eval(), recorder)
+results = recorder.data()
+unique_filename = str(uuid.uuid4())
+metastore(unique_filename, "results", "args")
