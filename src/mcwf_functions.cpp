@@ -80,6 +80,7 @@ void two_time_correlation(const Lindbladian & system,
   auto doubled_hamiltonian = doubled_system.hamiltonian();
   int time_steps = static_cast<int>((t2 - t1) / dt);
   // Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
+#pragma omp parallel for
   for (int i = 0; i < runs; ++i) {
     vec_t state = state_distro.draw();
     double t = 0.0;
@@ -90,12 +91,13 @@ void two_time_correlation(const Lindbladian & system,
     vec_t doubled_state = add_vectors(state, A0 * state);
     double norm = doubled_state.norm() / state.norm();
     doubled_state /= norm;
-    for (int j = 0; j < time_steps; ++j, t += dt) {
+    for (int j = 0; j < time_steps; ++j) {
       perform_time_step(doubled_system, *doubled_hamiltonian,
 			t, dt, doubled_state);
       double factor = norm * norm / doubled_state.squaredNorm();
-      recorder.record(doubled_state.head(sub_dim), doubled_state.tail(sub_dim),
+      recorder.record(doubled_state.head(sub_dim), doubled_state.tail(sub_dim) * factor,
 		      i, j);
+      t += dt;
       // double correlation = doubled_state.head(sub_dim).dot(A1 * doubled_state.tail(sub_dim)).real() * factor;
       // n_ensemble(i, j) = correlation;
     }

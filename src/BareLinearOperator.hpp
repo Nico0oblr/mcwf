@@ -38,8 +38,8 @@ struct BareLinearOperator : public LinearOperator<_MatrixType> {
   virtual std::unique_ptr<Base>
   clone() const override {return std::make_unique<this_t>(*this);}
   ~BareLinearOperator() override {self.resize(0, 0);}
-  BareLinearOperator(const this_t &) = default;
-  this_t& operator=(const this_t &) = default;
+  //BareLinearOperator(const this_t &) = default;
+  //this_t& operator=(const this_t &) = default;
   
   MatrixType self;
 };

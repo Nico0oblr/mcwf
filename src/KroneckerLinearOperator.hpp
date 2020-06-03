@@ -79,8 +79,8 @@ struct KroneckerIDRHSLinearOperator
   clone() const override {return std::make_unique<this_t>(*this);}
  
   ~KroneckerIDRHSLinearOperator() override {LHS.resize(0, 0);}
-  KroneckerIDRHSLinearOperator(const this_t &) = default;
-  this_t& operator=(const this_t &) = default;
+  //KroneckerIDRHSLinearOperator(const this_t &) = default;
+  //this_t& operator=(const this_t &) = default;
   
   MatrixType LHS;
   int codimension;
@@ -122,8 +122,8 @@ struct KroneckerIDLHSLinearOperator
   clone() const override {return std::make_unique<this_t>(*this);}
 
   ~KroneckerIDLHSLinearOperator() override {RHS.resize(0, 0);}
-  KroneckerIDLHSLinearOperator(const this_t &) = default;
-  this_t& operator=(const this_t &) = default;
+  //KroneckerIDLHSLinearOperator(const this_t &) = default;
+  //this_t& operator=(const this_t &) = default;
   
   MatrixType RHS;
   int codimension;

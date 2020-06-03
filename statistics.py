@@ -29,7 +29,7 @@ def construct_parser():
     parser = argparse.ArgumentParser(prog='mcwf run for hubbard model')
     parser.add_argument('--sites', type = int, help = "sites in the hubbard model")
     parser.add_argument('--coupling', type = float, default = 0.2, help = "light matter coupling")
-    parser.add_argument('--hubbardU', type = float, default = 8.0, help = "hubbard onsite term")
+    parser.add_argument('--hubbardU', type = float, default = -8.0, help = "hubbard onsite term")
     parser.add_argument('--frequency', type = float, default = 6.0, help = "cavity frequency")
     parser.add_argument('--gamma', type = float, default = 0.01, help = "cavity leak")
     parser.add_argument('--laser_amplitude', type = float, default = 0.1, help = "laser amplitude")
@@ -45,34 +45,34 @@ def construct_parser():
     return parser
 
 parser = construct_parser()
-args = parser.parse_args()
+pargs = parser.parse_args()
 
-if args.laser_frequency is None:
-    args.laser_frequency = args.frequency
-args.hubbardU *= args.hopping
-args.frequency *= args.hopping
+if pargs.laser_frequency is None:
+    pargs.laser_frequency = pargs.frequency
+pargs.hubbardU *= pargs.hopping
+pargs.frequency *= pargs.hopping
 
-sites = args.sites
-set_num_threads(args.num_threads)
+sites = pargs.sites
+set_num_threads(pargs.num_threads)
 
 projector = HubbardProjector_sp(sites, sites // 2, sites - (sites // 2))
-light_matter = Hubbard_light_matter_Operator(args.dimension, sites, args.coupling, args.hopping, args.hubbardU, args.periodic, projector);
+light_matter = Hubbard_light_matter_Operator(pargs.dimension, sites, pargs.coupling, pargs.hopping, pargs.hubbardU, pargs.periodic, projector);
 elec_dim = projector.shape[0]
-system_dimension = elec_dim * args.dimension
+system_dimension = elec_dim * pargs.dimension
 
-system = drivenCavity(args.temperature, args.frequency, args.laser_frequency, args.gamma, args.laser_amplitude, args.dimension, elec_dim)
+system = drivenCavity(pargs.temperature, pargs.frequency, pargs.laser_frequency, pargs.gamma, pargs.laser_amplitude, pargs.dimension, elec_dim)
 system.system_hamiltonian().add(light_matter)
-system_dimension = elec_dim * args.dimension
+system_dimension = elec_dim * pargs.dimension
 ident = scipy.sparse.identity(system_dimension)
-state_distro = coherent_photon_state(args.temperature, args.dimension) + HubbardGroundState(sites, args.hopping, args.hubbardU, args.periodic, projector)
+state_distro = coherent_photon_state(pargs.temperature, pargs.dimension) + HubbardGroundState(sites, pargs.hopping, pargs.hubbardU, pargs.periodic, projector)
 
-recorder = MCWFCorrelationRecorderMixin(args.runs)
-charge_densities = [kroneckerOperator_IDLHS(projector @ n_th_subsystem_sp(HubbardOperators.n_up() + HubbardOperators.n_down(), i, sites) @ projector.getH(), args.dimension) - operatorize(ident) for i in range(sites)]
+recorder = MCWFCorrelationRecorderMixin(pargs.runs)
+charge_densities = [kroneckerOperator_IDLHS(projector @ n_th_subsystem_sp(HubbardOperators.n_up() + HubbardOperators.n_down(), i, sites) @ projector.getH(), pargs.dimension) - operatorize(ident) for i in range(sites)]
 
 for charge_density in charge_densities:
     recorder.push_back(charge_density)
 
-Solvers.two_time_correlation(system, state_distro, 0.0, args.t, args.dt, args.runs, charge_densities[0].eval(), recorder)
+Solvers.two_time_correlation(system, state_distro, 0.0, pargs.t, pargs.dt, pargs.runs, charge_densities[0].eval(), recorder)
 results = recorder.data()
 unique_filename = str(uuid.uuid4())
-metastore(unique_filename, "results", "args")
+metastore(unique_filename, "results", "pargs")

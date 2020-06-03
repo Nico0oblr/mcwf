@@ -64,7 +64,9 @@ diagonalize_iteration(const MatrixType & H, const MatrixType & V) {
 }
 
 template<typename MatrixType>
-auto find_groundstate(const MatrixType & A, int niter) {
+std::pair<double, Eigen::Matrix<typename MatrixType::Scalar,
+				Eigen::Dynamic, Eigen::Dynamic>>
+find_groundstate(const MatrixType & A, int niter) {
 
 			  // if (A.rows() > 200) {
     auto [H, V] = lanczos_iteration(A, niter, vec_t());
