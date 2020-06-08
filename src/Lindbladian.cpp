@@ -55,8 +55,8 @@ Lindbladian drivenCavity(double n_b,
 			 int dimension,
 			 int elec_dim) {
   std::cout << "ampltiude: " << amplitude << std::endl;
-  auto A = kroneckerOperator_IDRHS(creationOperator_sp(dimension), elec_dim);
-  auto A_t = kroneckerOperator_IDRHS(annihilationOperator_sp(dimension),
+  auto A = kroneckerOperator_IDRHS(annihilationOperator_sp(dimension), elec_dim);
+  auto A_t = kroneckerOperator_IDRHS(creationOperator_sp(dimension),
 				     elec_dim);
   std::vector<lo_ptr> lindblad_op;
   lindblad_op.push_back(std::move(A));
