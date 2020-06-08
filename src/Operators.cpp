@@ -235,27 +235,6 @@ mat_t nth_subsystem(const mat_t & op,
   return out;
 }
 
-mat_t pauli_x() {
-  mat_t out(2,2);
-  out << 0, 1,
-      1, 0;
-  return out;
-}
-
-mat_t pauli_y() {
-  mat_t out(2,2);
-  out << 0, -1i,
-    1i, 0;
-  return out;
-}
-
-mat_t pauli_z() {
-  mat_t out(2,2);
-  out << 1, 0,
-      0, -1;
-  return out;
-}
-
 std::vector<mat_t> operator_vector(const Eigen::Ref<const mat_t> & op,
 				   int sites) {
   std::vector<mat_t> matrices;
@@ -276,59 +255,6 @@ mat_t sum_operator(const mat_t & op,
     total += nth_subsystem(op, i, sites);
   }
   return total;
-}
-
-std::vector<mat_t> pauli_x_vector(int sites) {
-  return operator_vector(pauli_x(), sites);
-}
-
-std::vector<mat_t> pauli_y_vector(int sites) {
-  return operator_vector(pauli_y(), sites);
-}
-
-std::vector<mat_t> pauli_z_vector(int sites) {
-  return operator_vector(pauli_z(), sites);
-}
-
-mat_t pauli_z_total(int sites) {
-  return sum_operator(pauli_z(), sites);
-}
-
-mat_t pauli_squared_total(int sites) {
-  return sum_operator(pauli_x() * pauli_x()
-		      + pauli_y() * pauli_y()
-		      + pauli_z() * pauli_z(), sites);
-}
-
-mat_t HeisenbergChain(int sites,
-		      double Jx, double Jy, double Jz,
-		      bool periodic) {
-  if (sites == 0) {
-    mat_t out(1,1);
-    out(0,0) = 1.0;
-    return out;
-  }
-  
-  assert(sites > 0);
-  std::vector<mat_t> x_matrices = pauli_x_vector(sites);
-  std::vector<mat_t> y_matrices = pauli_y_vector(sites);
-  std::vector<mat_t> z_matrices = pauli_z_vector(sites);
-
-  mat_t ham = mat_t::Zero(z_matrices.back().cols(), z_matrices.back().rows());
-  for (int i = 0; i + 1 < sites; ++i) {
-    ham += 0.25 * Jx * (x_matrices[i] * x_matrices[i + 1]);
-    ham += 0.25 * Jy * (y_matrices[i] * y_matrices[i + 1]);
-    ham += 0.25 * Jz * (z_matrices[i] * z_matrices[i + 1]);
-  }
-
-  if (periodic && sites > 2) {
-    ham += 0.25 * Jx * (x_matrices[sites - 1] * x_matrices[0]);
-    ham += 0.25 * Jy * (y_matrices[sites - 1] * y_matrices[0]);
-    ham += 0.25 * Jz * (z_matrices[sites - 1] * z_matrices[0]);
-  }
-
-  // ham += ham.adjoint().eval();
-  return ham - mat_t::Identity(ham.cols(), ham.rows());
 }
 
 spmat_t n_th_subsystem_sp(const spmat_t & op,

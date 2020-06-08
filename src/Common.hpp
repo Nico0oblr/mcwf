@@ -14,6 +14,15 @@ static std::uniform_real_distribution<double> dis(0.0, 1.0);
 /*Numerical tolerance for double comp*/
 using size_type = std::size_t;
 
+
+void set_seed(int seed);
+
+std::string get_random_state();
+
+void set_random_state(const std::string & state);
+
+double mt_rand_gen();
+
 /*
   Add two vectors vec1 and vec2 by stacking them on top of each other
 */

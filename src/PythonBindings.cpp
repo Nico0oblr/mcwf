@@ -1,5 +1,6 @@
 #define EIGEN_SPARSEMATRIX_PLUGIN "SparseAddons.h"
 #define MAKE_SHARED
+
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
@@ -36,6 +37,8 @@
 #include "Kron.hpp"
 #include "LinearOperator.hpp"
 #include "Lanczos.hpp"
+#include "Heisenberg.hpp"
+#include "SD.hpp"
 
 namespace py = pybind11;
 
@@ -93,6 +96,10 @@ PYBIND11_MODULE(mcwf, m) {
   m.def("factorial", &factorial, "");
   m.def("poisson", &poisson, "");
   m.def("minus_one_power", &minus_one_power, "");
+  m.def("set_seed", &set_seed);
+  m.def("get_random_state", &get_random_state);
+  m.def("set_random_state", &set_random_state);
+  m.def("mt_rand_gen", &mt_rand_gen);
   /*HubbardModel.hpp*/
 
   /*Hamiltonian.hpp*/
@@ -162,6 +169,7 @@ PYBIND11_MODULE(mcwf, m) {
   m.def("DimerGroundState", &DimerGroundState);
   m.def("HubbardProjector", &HubbardProjector);
   m.def("HubbardProjector_sp", &HubbardProjector_sp);
+  m.def("HubbardProjector_basis", &HubbardProjector_basis);
 
   /*Solvers*/
   auto msolvers = m.def_submodule("Solvers");
@@ -187,6 +195,8 @@ PYBIND11_MODULE(mcwf, m) {
   msolvers.def("two_time_correlation", &two_time_correlation,
 	       py::call_guard<py::scoped_ostream_redirect,
 	       py::scoped_estream_redirect>());
+  msolvers.def("two_time_correlation_singlerun", &two_time_correlation_singlerun);
+  msolvers.def("mcwf_singlerun", &mcwf_singlerun);
 
   /*Recorders*/
   // Observable recorder
@@ -200,8 +210,8 @@ PYBIND11_MODULE(mcwf, m) {
     .def("Var2", &MCWFObservableRecorder::Var2)
     .def("distribution", &MCWFObservableRecorder::distribution)
     .def("push_back", &MCWFObservableRecorder::push_back)
-    .def(py::init<const std::vector<calc_mat_t> & , int>())
-    .def(py::init<int>())
+    .def(py::init<const std::vector<calc_mat_t> &>())
+    .def(py::init<>())
     .def(py::pickle
 	 (
 	  [](const MCWFObservableRecorder &p) { // __getstate__
@@ -209,16 +219,19 @@ PYBIND11_MODULE(mcwf, m) {
 	    for (const auto & obs : p.m_observables)
 	      evaluated_obs.push_back(obs->eval());
 	    return py::make_tuple(evaluated_obs,
-				  p.n_runs(),
 				  p.m_records);
 	  },
 	  [](py::tuple t) { // __setstate__
-	    if (t.size() != 3) {
+	    py::scoped_ostream_redirect
+	      stream(std::cout,                         
+		     py::module::import("sys").attr("stdout"));
+	    std::cout << t.size() << std::endl;
+	    LOG_VAR(t.size());
+	    if (t.size() != 2) {
 	      throw std::runtime_error("Invalid state!");
-	    }	      
-	    MCWFObservableRecorder tmp(t[0].cast<std::vector<calc_mat_t>>(),
-				       t[1].cast<int>());
-	    tmp.m_records = t[2].cast<std::vector<std::vector<std::vector<double>>>>();
+	    }    
+	    MCWFObservableRecorder tmp(t[0].cast<std::vector<calc_mat_t>>());
+	    tmp.m_records = t[1].cast<std::vector<std::vector<std::vector<double>>>>();
 	    return tmp;
 	  }
 	  ));
@@ -276,7 +289,7 @@ PYBIND11_MODULE(mcwf, m) {
   // Density matrix recorder
   py::class_<MCWFDmatRecorder, MCWFRecorder>(m, "MCWFDmatRecorder")
     .def("density_matrices", &MCWFDmatRecorder::density_matrices)
-    .def(py::init<int>());
+    .def(py::init<>());
   py::class_<DirectStateRecorder, RecorderHost<vec_t>>(m, "DirectStateRecorder")
     .def("density_matrices", &DirectStateRecorder::density_matrices);
   py::class_<DirectDmatRecorder, RecorderHost<calc_mat_t>>
@@ -284,7 +297,25 @@ PYBIND11_MODULE(mcwf, m) {
     .def("density_matrices", &DirectDmatRecorder::density_matrices);
   py::class_<MCWFCorrelationRecorderMixin, MCWFObservableRecorder>
     (m, "MCWFCorrelationRecorderMixin")
-    .def(py::init<int>());
+    .def(py::init<>())
+    .def(py::pickle
+	 (
+	  [](const MCWFCorrelationRecorderMixin &p) { // __getstate__
+	    std::vector<calc_mat_t> evaluated_obs;
+	    for (const auto & obs : p.m_observables)
+	      evaluated_obs.push_back(obs->eval());
+	    return py::make_tuple(evaluated_obs,
+				  p.m_records);
+	  },
+	  [](py::tuple t) { // __setstate__
+	    if (t.size() != 2) {
+	      throw std::runtime_error("Invalid state!");
+	    }    
+	    MCWFCorrelationRecorderMixin tmp(t[0].cast<std::vector<calc_mat_t>>());
+	    tmp.m_records = t[1].cast<std::vector<std::vector<std::vector<double>>>>();
+	    return tmp;
+	  }
+	  ));
   py::class_<CorrelationRecorderMixin, StateObservableRecorder>
     (m, "CorrelationRecorderMixin")
     .def(py::init<>());
@@ -608,4 +639,10 @@ PYBIND11_MODULE(mcwf, m) {
   m.def("find_groundstate", &find_groundstate<spmat_t>);
   m.def("find_groundstate", &find_groundstate<LinearOperator<spmat_t>>);
   m.def("HubbardGroundState", &HubbardGroundState);
+
+  /*SD.hpp*/
+
+  m.def("vector_to_matrix", py::overload_cast<const vec_t &, int>(&vector_to_matrix));
+  m.def("vector_to_matrix", py::overload_cast<const vec_t &, int, const std::vector<int> &, int>(&vector_to_matrix));
+  m.def("compute_svd", &compute_svd);
 }

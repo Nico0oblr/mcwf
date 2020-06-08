@@ -1,5 +1,24 @@
 #include "Common.hpp"
 
+void set_seed(int seed) {
+  mt_rand.seed(seed);
+}
+
+std::string get_random_state() {
+  std::stringstream out;
+  out << mt_rand;
+  return out.str();
+}
+
+void set_random_state(const std::string & state) {
+  std::istringstream str(state);
+  str >> mt_rand;
+}
+
+double mt_rand_gen() {
+  return dis(mt_rand);
+}
+
 vec_t add_vectors(const vec_t & vec1, const vec_t & vec2) {
   vec_t out = vec_t::Zero(vec1.size() + vec2.size());
   out.head(vec1.size()) = vec1;

@@ -46,30 +46,37 @@ void perform_time_step(const Lindbladian & system,
   }
 }
 
+void mcwf_singlerun(const Lindbladian & system,
+		    const HSpaceDistribution & state_distro,
+		    double time, double dt,
+		    MCWFRecorder & recorder) {
+  auto hamiltonian = system.hamiltonian();
+  int run_id = recorder.register_run();
+  vec_t state = state_distro.draw();
+  int time_steps = static_cast<int>(time / dt);
+  double t = 0.0;
+  for (int j = 0; j < time_steps; ++j, t += dt) {
+    perform_time_step(system, *hamiltonian, t, dt, state);
+    recorder.record(state, run_id, j);
+  }    
+}
+
 void observable_calc(const Lindbladian & system,
 		     const HSpaceDistribution & state_distro,
 		     double time, double dt, int runs,
 		     MCWFRecorder & recorder) {
   LOG(logINFO) << "starting mcwf observable run" << std::endl;
-  auto hamiltonian = system.hamiltonian();
-  int time_steps = static_cast<int>(time / dt);
 #pragma omp parallel for
   for (int i = 0; i < runs; ++i) {
-    vec_t state = state_distro.draw();
-    double t = 0.0;
-    for (int j = 0; j < time_steps; ++j, t += dt) {
-      perform_time_step(system, *hamiltonian, t, dt, state);
-      recorder.record(state, i, j);
-    }    
+    mcwf_singlerun(system, state_distro, time, dt, recorder);
   }
 }
 
-void two_time_correlation(const Lindbladian & system,
-			  const HSpaceDistribution & state_distro,
-			  double t1, double t2, double dt,
-			  int runs,
-			  const calc_mat_t & A0,
-			  MCWFCorrelationRecorderMixin & recorder) {
+void two_time_correlation_singlerun(const Lindbladian & system,
+				    const HSpaceDistribution & state_distro,
+				    double t1, double t2, double dt,
+				    const calc_mat_t & A0,
+				    MCWFCorrelationRecorderMixin & recorder) {
   int sub_dim = system.m_system_hamiltonian->dimension();
   auto doubled_system_ham = system.m_system_hamiltonian->clone();
   doubled_system_ham->doubleMe();
@@ -79,27 +86,36 @@ void two_time_correlation(const Lindbladian & system,
   auto hamiltonian = system.hamiltonian();
   auto doubled_hamiltonian = doubled_system.hamiltonian();
   int time_steps = static_cast<int>((t2 - t1) / dt);
-  // Eigen::MatrixXd n_ensemble = Eigen::MatrixXd::Zero(runs, time_steps);
+  int run_id = recorder.register_run();
+  vec_t state = state_distro.draw();
+  double t = 0.0;
+  for (t = 0.0; t <= t1; t += dt) {
+    perform_time_step(system, *hamiltonian, t, dt, state);
+  }
+
+  vec_t doubled_state = add_vectors(state, A0 * state);
+  double norm = doubled_state.norm() / state.norm();
+  doubled_state /= norm;
+  for (int j = 0; j < time_steps; ++j) {
+    perform_time_step(doubled_system, *doubled_hamiltonian,
+		      t, dt, doubled_state);
+    double factor = norm * norm / doubled_state.squaredNorm();
+    recorder.record(doubled_state.head(sub_dim),
+		    doubled_state.tail(sub_dim) * factor,
+		    run_id, j);
+    t += dt;
+  }
+}
+
+void two_time_correlation(const Lindbladian & system,
+			  const HSpaceDistribution & state_distro,
+			  double t1, double t2, double dt,
+			  int runs,
+			  const calc_mat_t & A0,
+			  MCWFCorrelationRecorderMixin & recorder) {
 #pragma omp parallel for
   for (int i = 0; i < runs; ++i) {
-    vec_t state = state_distro.draw();
-    double t = 0.0;
-    for (t = 0.0; t <= t1; t += dt) {
-      perform_time_step(system, *hamiltonian, t, dt, state);
-    }
-
-    vec_t doubled_state = add_vectors(state, A0 * state);
-    double norm = doubled_state.norm() / state.norm();
-    doubled_state /= norm;
-    for (int j = 0; j < time_steps; ++j) {
-      perform_time_step(doubled_system, *doubled_hamiltonian,
-			t, dt, doubled_state);
-      double factor = norm * norm / doubled_state.squaredNorm();
-      recorder.record(doubled_state.head(sub_dim), doubled_state.tail(sub_dim) * factor,
-		      i, j);
-      t += dt;
-      // double correlation = doubled_state.head(sub_dim).dot(A1 * doubled_state.tail(sub_dim)).real() * factor;
-      // n_ensemble(i, j) = correlation;
-    }
+    two_time_correlation_singlerun(system, state_distro, t1, t2,
+				   dt, A0, recorder);
   }
 }

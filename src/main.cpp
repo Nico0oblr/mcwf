@@ -51,7 +51,7 @@ int main(int argc, char ** argv) {
 						    time1, time, dt, observable,
 						    observable);*/
   } else if (method == "mcwf") {
-    ExpvalWriterMixin<MCWFObservableRecorder> recorder({observable}, runs);
+    ExpvalWriterMixin<MCWFObservableRecorder> recorder({observable});
     observable_calc(lms.system, state_distro, time, dt, runs, recorder);
     recorder.write("results.csv");
     return 0;
@@ -72,7 +72,7 @@ int main(int argc, char ** argv) {
     recorder.write("results.csv");
     return 0;
   } else if (method == "compare") {
-    MCWFDmatRecorder mcwf_recorder(runs);
+    MCWFDmatRecorder mcwf_recorder;
     DirectDmatRecorder direct_recorder;
     DirectDmatRecorder kutta_recorder;
     auto start = std::chrono::high_resolution_clock::now(); 

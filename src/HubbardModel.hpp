@@ -71,4 +71,7 @@ HSpaceDistribution HubbardGroundState(int sites,
 				      double hubbardU,
 				      bool periodic,
 				      const spmat_t & proj);
+
+std::vector<int> HubbardProjector_basis(int sites, int total_spins_up,
+					int total_spins_down);
 #endif /* HUBBARDMODEL_HPP */

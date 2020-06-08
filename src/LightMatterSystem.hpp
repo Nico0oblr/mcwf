@@ -5,6 +5,7 @@
 #include "Lindbladian.hpp"
 #include "argparse.hpp"
 #include "HSpaceDistribution.hpp"
+#include "Heisenberg.hpp"
 
 struct LightMatterSystem {
   Lindbladian system;

@@ -1,14 +1,14 @@
 #ifndef EIGENCOMMON_HPP
 #define EIGENCOMMON_HPP
 
-// #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #define EIGEN_DONT_PARALLELIZE
 #define EIGEN_SPARSEMATRIX_PLUGIN "SparseAddons.h"
 #define EIGEN_SPARSEMATRIXBASE_PLUGIN "SparseBaseAddons.h"
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 #include "KroneckerProduct.hpp"
-// #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #include <iostream>
 
 

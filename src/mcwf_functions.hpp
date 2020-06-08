@@ -16,6 +16,11 @@ void perform_time_step(const Lindbladian & system,
 		       double t, double dt,
 		       vec_t & state);
 
+void mcwf_singlerun(const Lindbladian & system,
+		    const HSpaceDistribution & state_distro,
+		    double time, double dt,
+		    MCWFRecorder & recorder);
+
 /*
   Do mcwf run and evaluate the observable given. 
 */
@@ -23,6 +28,12 @@ void observable_calc(const Lindbladian & system,
 		     const HSpaceDistribution & state_distro,
 		     double time, double dt, int runs,
 		     MCWFRecorder & recorder);
+
+void two_time_correlation_singlerun(const Lindbladian & system,
+				    const HSpaceDistribution & state_distro,
+				    double t1, double t2, double dt,
+				    const calc_mat_t & A0,
+				    MCWFCorrelationRecorderMixin & recorder);
 
 /*
   Two-time correlation function for fixed times t1 and t0.

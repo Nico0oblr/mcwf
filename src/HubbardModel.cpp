@@ -325,3 +325,22 @@ HSpaceDistribution HubbardGroundState(int sites,
   int niter = std::min(75, dimension / 2);
   return HSpaceDistribution({1.0}, {find_groundstate(hubbard, niter).second});
 }
+
+
+std::vector<int> HubbardProjector_basis(int sites, int total_spins_up,
+					int total_spins_down) {
+  int dimension = std::pow(4, sites);
+  spmat_t n_up_operator = sum_operator_sp(HubbardOperators::n_up(), sites);
+  spmat_t n_down_operator = sum_operator_sp(HubbardOperators::n_down(), sites);
+  vec_t n_up_operator_d = n_up_operator.diagonal();
+  vec_t n_down_operator_d = n_down_operator.diagonal();
+  
+  std::vector<int> projection_basis;
+  for (int i = 0; i < dimension; ++i) {
+    if (std::abs(total_spins_up - n_up_operator_d(i).real()) < tol
+	&& std::abs(total_spins_down - n_down_operator_d(i).real()) < tol) {
+      projection_basis.push_back(i);
+    }
+  }
+  return projection_basis;
+}

@@ -133,58 +133,6 @@ std::vector<mat_t> operator_vector(const Eigen::Ref<const mat_t> & op,
 mat_t sum_operator(const mat_t & op,
 		   int sites);
 
-/*
-  Pauli x matrix for a single spin for z-axis quantized.
-*/
-mat_t pauli_x();
-
-/*
-  Pauli y matrix for a single spin for z-axis quantized.
-*/
-mat_t pauli_y();
-
-/*
-  Pauli z matrix for a single spin for z-axis quantized.
-*/
-mat_t pauli_z();
-
-/*
-  Creates vector of pauli x matrices acting on the ith particle for 
-  some number of total sites.
-*/
-std::vector<mat_t> pauli_x_vector(int sites);
-
-/*
-  Creates vector of pauli y matrices acting on the ith particle for 
-  some number of total sites.
-*/
-std::vector<mat_t> pauli_y_vector(int sites);
-
-/*
-  Creates vector of pauli z matrices acting on the ith particle for 
-  some number of total sites.
-*/
-std::vector<mat_t> pauli_z_vector(int sites);
-
-/*
-  The total pauli z matrix of a system with a given number of sites
-*/
-mat_t pauli_z_total(int sites);
-
-/*
-  Total squared pauli matrix for a sites-spin system
-*/
-mat_t pauli_squared_total(int sites);
-
-/*
-  Defines the Hamiltonian for the heisenberg chain
-  with a given number of sites, an anisotropy Jx, Jy, Jz
-  and an option for periodic or open system.
- */
-mat_t HeisenbergChain(int sites,
-		      double Jx, double Jy, double Jz,
-		      bool periodic);
-
 spmat_t n_th_subsystem_sp(const spmat_t & op,
 			  int n_subsystem,
 			  int n_subsystems);

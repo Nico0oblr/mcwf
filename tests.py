@@ -349,3 +349,23 @@ def test_superoperator():
     mat_almost_equal(result_lhs1, result_lhs2)
     mat_almost_equal(result_rhs1, result_rhs2)
 
+
+def test_random():
+    state = get_random_state()
+    n1 = mt_rand_gen()
+    set_random_state(state)
+    n2 = mt_rand_gen()
+    assert n1 == n2
+
+    set_seed(111)
+    n1 = mt_rand_gen()
+    set_seed(111)
+    n2 = mt_rand_gen()
+    assert n1 == n2
+
+    state = get_random_state()
+    n1 = mt_rand_gen()
+    set_seed(0)
+    set_random_state(state)
+    n2 = mt_rand_gen()
+    assert n1 == n2
