@@ -123,7 +123,7 @@ vec_t _expm_multiply_simple_core(const LinearOperator<spmat_t> & A,
     B = F;
   }
 
-  LOG_VAR(matmuls);
+  // LOG_VAR(matmuls);
   return F;
 }
 

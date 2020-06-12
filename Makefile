@@ -12,8 +12,8 @@ INC_DIRS := $(shell find $(SRC_DIRS) -type d) ./include/eigen ~/git_clone/yaml-c
 PYTHON_INC := $(shell python3 -m pybind11 --includes | sed -En "s/-I/-isystem /gp")
 INC_FLAGS := $(addprefix -isystem ,$(INC_DIRS))  $(PYTHON_INC)
 
-CXX = g++  -fPIC -fopenmp # -flto
-CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -O3 -march=native -g3 -fno-omit-frame-pointer -std=c++17
+CXX = g++  -fPIC -fopenmp -flto
+CPPFLAGS ?= $(INC_FLAGS) -MMD -MP -O3 -g3 -fno-omit-frame-pointer -std=c++17
 CPPFLAGS += -pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wswitch-default -Wundef  -Wno-unused #-Wsign-conversion -Werror -Wstrict-overflow=5
 LDFLAGS += -L$(HOME)/git_clone/yaml-cpp/build -lyaml-cpp
 

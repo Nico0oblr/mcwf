@@ -73,8 +73,11 @@ public:
 		      size_type time_step) override {
     Base::record(state, run_index, time_step);
     assert(m_observables.size() == m_records.size());
+
+#pragma omp critical
     for (size_type i = 0; i < m_observables.size(); ++i) {
-      m_records[i][run_index].push_back(evaluate_impl(state, *m_observables[i]));
+      assert(m_records.at(i).at(run_index).size() == time_step);
+      m_records.at(i).at(run_index).push_back(evaluate_impl(state, *m_observables[i]));
     }
   }
   
@@ -92,8 +95,8 @@ public:
     size_type time_steps = m_records.at(index).at(0).size();
     Eigen::MatrixXd mat(m_records[index].size(), time_steps);
     for (size_type i = 0; i < m_records[index].size(); ++i) {
-      for (size_type j = 0; j < time_steps; ++j) {
-	mat(i, j) = m_records[index][i][j];
+      for (size_type j = 0; j < m_records[index][i].size(); ++j) {
+	mat(i, j) = m_records.at(index).at(i).at(j);
       }
     }
 
@@ -203,8 +206,9 @@ public:
   using Base::record;
   virtual void record(const vec_t & lhs, const vec_t & rhs) {
     assert(m_observables.size() == m_records.size());
+#pragma omp critical
     for (size_type i = 0; i < m_observables.size(); ++i) {
-      m_records[i].push_back(lhs.dot(*m_observables[i] * rhs).real());
+      m_records.at(i).push_back(lhs.dot(*m_observables[i] * rhs).real());
     }
   }
 };

@@ -67,12 +67,14 @@ ident = scipy.sparse.identity(system_dimension)
 state_distro = coherent_photon_state(pargs.temperature, pargs.dimension) + HubbardGroundState(sites, pargs.hopping, pargs.hubbardU, pargs.periodic, projector)
 
 recorder = MCWFObservableRecorder()
-charge_densities = [kroneckerOperator_IDLHS(projector @ n_th_subsystem_sp(HubbardOperators.n_up() + HubbardOperators.n_down(), i, sites) @ projector.getH(), pargs.dimension) - operatorize(ident) for i in range(sites)]
+photon_number = kroneckerOperator_IDRHS(numberOperator_sp(pargs.dimension), elec_dim)
+photon_displacement = kroneckerOperator_IDRHS(creationOperator_sp(pargs.dimension) + annihilationOperator_sp(pargs.dimension), elec_dim)
+single_spin = kroneckerOperator_IDLHS(projector @ n_th_subsystem_sp(HubbardOperators.n_up() - HubbardOperators.n_down(), 0, sites) @ projector.getH(), pargs.dimension)
+opid = operatorize(scipy.sparse.identity(system_dimension, dtype = np.complex))
+recorder.push_back(opid).push_back(light_matter).push_back(photon_number).push_back(single_spin).push_back(photon_displacement)
 
-for charge_density in charge_densities:
-    recorder.push_back(charge_density)
 
-Solvers.observable_calc(system, state_distro, t, dt, runs, recorder)
+Solvers.observable_calc(system, state_distro, pargs.t, pargs.dt, pargs.runs, recorder)
 results = recorder.data()
 unique_filename = str(uuid.uuid4())
 metastore(unique_filename, "results", "pargs")
