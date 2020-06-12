@@ -23,7 +23,7 @@ data
 *.csv
 
 #jupyter notebooks
-*.ipynb
+#*.ipynb
 
 # c++ generic
 # Prerequisites
