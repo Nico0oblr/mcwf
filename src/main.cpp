@@ -69,7 +69,7 @@ int main(int argc, char ** argv) {
     ExpvalWriterMixin<StateObservableRecorder> recorder({observable});
     direct_closed_observable(*lms.system.m_system_hamiltonian,
 			     state_distro.draw(), time, dt, recorder);
-    recorder.write("results.csv");
+			     recorder.write("results.csv");
     return 0;
   } else if (method == "compare") {
     MCWFDmatRecorder mcwf_recorder;

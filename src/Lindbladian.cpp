@@ -122,17 +122,17 @@ void Lindbladian::add_subsystem(const calc_mat_t sub_hamiltonian) {
   m_system_hamiltonian->add(sub_hamiltonian);
 }
 
-calc_mat_t Lindbladian::operator()(double time, const calc_mat_t & density_matrix) const {
-  calc_mat_t out = - 1.0i * (*(*m_system_hamiltonian)(time) * density_matrix
-			     - density_matrix * (*(*m_system_hamiltonian)(time)));
+calc_mat_t Lindbladian::operator()(double time,
+				   const calc_mat_t & density_matrix) const {
+  auto h = (*m_system_hamiltonian)(time)->eval();
+  calc_mat_t out = - 1.0i * (h * density_matrix- density_matrix * h);
   for (size_type i = 0; i < m_lindblad_operators.size(); ++i) {
     if (std::abs(m_lindblad_amplitudes[i]) < tol) continue;
-    auto adj_op = m_lindblad_operators[i]->adjoint();
-    auto num = 0.5 * adj_op * m_lindblad_operators[i];
+    auto adj_op = (m_lindblad_operators[i]->adjoint())->eval();
+    auto num = 0.5 * adj_op * m_lindblad_operators[i]->eval();
     out += m_lindblad_amplitudes[i]
-      * ((*m_lindblad_operators[i]) * density_matrix * (*adj_op)
-	 - (*num) * density_matrix
-	 - density_matrix * (*num));
+      * (m_lindblad_operators[i]->eval() * density_matrix * adj_op
+	 - num * density_matrix - density_matrix * num);
   }
   return out;
 }

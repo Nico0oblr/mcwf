@@ -9,6 +9,40 @@
 #include "MatrixExpApply.hpp"
 #include "ArnoldiIteration.hpp"
 
+template<typename Hfunc>
+auto fourth_order_timeordered_exponential(const Hfunc & H, double t, double dt) {
+  static double c1 = (3.0 - 2.0 * std::sqrt(3.0)) / 12.0;
+  static double c2 = (3.0 + 2.0 * std::sqrt(3.0)) / 12.0;
+  auto H1 = H(t + (0.5 - std::sqrt(3.0) / 6.0) * dt)->eval();
+  auto H2 = H(t + (0.5 + std::sqrt(3.0) / 6.0) * dt)->eval();
+  auto fac1 = expm(-1.0i * (c1 * H1 + c2 * H2) * dt);
+  auto fac2 = expm(-1.0i * (c2 * H1 + c1 * H2) * dt);
+  return fac1 * fac2;
+}
+
+template<typename Hfunc>
+vec_t fourth_order_timeordered_exponential(const Hfunc & H, double t,
+					   double dt, const vec_t & state) {
+  static double c1 = (3.0 - 2.0 * std::sqrt(3.0)) / 12.0;
+  static double c2 = (3.0 + 2.0 * std::sqrt(3.0)) / 12.0;
+  auto H1 = H(t + (0.5 - std::sqrt(3.0) / 6.0) * dt);
+  auto H2 = H(t + (0.5 + std::sqrt(3.0) / 6.0) * dt);
+  auto fac1 = scale_and_add(*H1, *H2, -1.0i * dt * c1, -1.0i * dt * c2);
+  auto fac2 = scale_and_add(*H1, *H2, -1.0i * dt * c2, -1.0i * dt * c1);
+  int krylov_dim = std::min(20, static_cast<int>(state.size() / 2));
+  vec_t apply_fac2 = exp_krylov_apply(*fac2, state, krylov_dim);
+  vec_t apply_fac1 = exp_krylov_apply(*fac1, apply_fac2, krylov_dim);
+  return apply_fac1;
+}
+
+template<typename Hfunc>
+vec_t fourth_order_timeordered_exponential(const Hfunc & H,
+					   double dt, const vec_t & state) {
+  int krylov_dim = std::min(20, static_cast<int>(state.size() / 2));
+  auto exponent = -1.0i * dt * (*H);
+  return exp_krylov_apply(*exponent, state, krylov_dim);
+}
+
 /*
   TODO: Take care of dimensionality
 */
@@ -60,12 +94,15 @@ public:
   {return m_hamiltonian->clone();}
 
   vec_t propagate(double time, double dt, const vec_t & state) override
-  {return propagator(time, dt) * state;}
+  {
+    return fourth_order_timeordered_exponential(m_hamiltonian, dt, state);
+    // return propagator(time, dt) * state;
+  }
 
   MatrixType propagator(double /*time*/, double dt) override {
     if ((m_propagator.size() == m_hamiltonian->size())
 	|| (std::abs(m_last_dt - dt) > tol)) {
-      m_propagator = matrix_exponential_taylor(-1.0 * m_hamiltonian->eval() * dt, 4);
+      m_propagator = expm(-1.0i * m_hamiltonian->eval() * dt);
     }
     return m_propagator;
   }
@@ -148,32 +185,6 @@ protected:
   TimeIndependentHamiltonian* clone_impl()
     const override {return new TimeIndependentHamiltonian(*this);}
 };
-
-
-template<typename Hfunc>
-auto fourth_order_timeordered_exponential(const Hfunc & H, double t, double dt) {
-  static double c1 = (3.0 - 2.0 * std::sqrt(3.0)) / 12.0;
-  static double c2 = (3.0 + 2.0 * std::sqrt(3.0)) / 12.0;
-  auto H1 = H(t + (0.5 - std::sqrt(3.0) / 6.0) * dt)->eval();
-  auto H2 = H(t + (0.5 + std::sqrt(3.0) / 6.0) * dt)->eval();
-  auto fac1 = expm(-1.0i * (c1 * H1 + c2 * H2) * dt);
-  auto fac2 = expm(-1.0i * (c2 * H1 + c1 * H2) * dt);
-  return fac1 * fac2;
-}
-
-template<typename Hfunc>
-vec_t fourth_order_timeordered_exponential(const Hfunc & H, double t,
-					   double dt, const vec_t & state) {
-  static double c1 = (3.0 - 2.0 * std::sqrt(3.0)) / 12.0;
-  static double c2 = (3.0 + 2.0 * std::sqrt(3.0)) / 12.0;
-  auto H1 = H(t + (0.5 - std::sqrt(3.0) / 6.0) * dt);
-  auto H2 = H(t + (0.5 + std::sqrt(3.0) / 6.0) * dt);
-  auto fac1 = scale_and_add(*H1, *H2, -1.0i * dt * c1, -1.0i * dt * c2);
-  auto fac2 = scale_and_add(*H1, *H2, -1.0i * dt * c2, -1.0i * dt * c1);
-  vec_t apply_fac2 = exp_krylov_apply(*fac2, state, 20);
-  vec_t apply_fac1 = exp_krylov_apply(*fac1, apply_fac2, 20);
-  return apply_fac1;
-}
 
 
 template<typename _MatrixType>

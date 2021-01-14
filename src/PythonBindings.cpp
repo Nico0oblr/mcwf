@@ -143,9 +143,9 @@ PYBIND11_MODULE(mcwf, m) {
     .def(py::init<const Hamiltonian<calc_mat_t> &,
 	 const std::vector<calc_mat_t> &,
 	 const std::vector<scalar_t> &>())
-    .def(py::init<const Hamiltonian<calc_mat_t> &,
+    /*.def(py::init<const Hamiltonian<calc_mat_t> &,
 	 const std::vector<calc_mat_t> &,
-	 const Eigen::MatrixXd &>())
+	 const Eigen::MatrixXd &>())*/
     .def(py::init<const Lindbladian &>());
   m.def("bose_distribution", &bose_distribution);
   m.def("thermalCavity", &thermalCavity);
